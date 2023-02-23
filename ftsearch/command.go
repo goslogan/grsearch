@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"strconv"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -111,8 +110,8 @@ func (cmd *QueryCmd) parseResult() error {
 		key := rawResults[i+j].(string)
 		j++
 
-		if cmd.options.WithScores {
-			score, _ = strconv.ParseFloat(rawResults[i+j].(string), 64)
+		if cmd.options.Scores {
+			score, _ = rawResults[i+j].(float64)
 			j++
 		}
 

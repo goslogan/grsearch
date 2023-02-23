@@ -7,11 +7,10 @@ import (
 )
 
 type QueryOptions struct {
-	Index       string
 	NoContent   bool
 	Verbatim    bool
 	NoStopWords bool
-	WithScores  bool
+	Scores      bool // WithScores but we need that for the API name
 	InOrder     bool
 	// ExplainScore bool
 	Limit        *queryLimit
@@ -57,13 +56,6 @@ func NewQueryOptions() *QueryOptions {
 // required to use it in redis-cli is not done.
 func (q *QueryOptions) String() string {
 	return fmt.Sprintf("%v", q.serialize())
-}
-
-// WithIndex sets the index to be search on a query, returning the
-// udpated query for chaining
-func (q *QueryOptions) WithIndex(index string) *QueryOptions {
-	q.Index = index
-	return q
 }
 
 // WithLimit adds a limit to a query, returning the Query with
@@ -153,6 +145,18 @@ func (q *QueryOptions) WithoutContent() *QueryOptions {
 	return q
 }
 
+// WithScores sets the WITHSCORES option for searches
+func (q *QueryOptions) WithScores() *QueryOptions {
+	q.Scores = true
+	return q
+}
+
+// WithScores clears the WITHSCORES option for searches
+func (q *QueryOptions) WithoutScores() *QueryOptions {
+	q.Scores = false
+	return q
+}
+
 // serialize converts a query struct to a slice of  interface{}
 // ready for execution against Redis
 func (q *QueryOptions) serialize() []interface{} {
@@ -170,7 +174,7 @@ func (q *QueryOptions) serialize() []interface{} {
 		args = append(args, "NOSTOPWORDS")
 	}
 
-	if q.WithScores {
+	if q.Scores {
 		args = append(args, "WITHSCORES")
 	}
 
@@ -230,7 +234,7 @@ func (q *QueryOptions) serializeLanguage() []interface{} {
 func (q *QueryOptions) setResultSize() {
 	count := 2 // default to 2 - key and value
 
-	if q.WithScores { // one more if returning scores
+	if q.Scores { // one more if returning scores
 		count += 1
 	}
 

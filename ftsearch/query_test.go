@@ -7,7 +7,7 @@ import (
 )
 
 // ft.search accounts "@tam:nic\.gibson"
-var _ = Describe("Query", func() {
+var _ = Describe("Query basics", func() {
 
 	It("doesn't raise an error on a valid query", func() {
 		Expect(client.FTSearch(ctx, "customers", `@email:ejowers0\@unblog\.fr`, nil).
@@ -26,10 +26,6 @@ var _ = Describe("Query", func() {
 		Expect(client.FTSearch(ctx, "customers", `@email:ejowers0\@unblog\.fr`, nil).Len()).To(Equal(1))
 	})
 
-	It("can return all the results for a given tag", func() {
-		Expect(client.FTSearch(ctx, "customers", `@owner:{nic\.gibson}`, nil).Len()).To(Equal(10))
-	})
-
 	It("can return a map result", func() {
 		Expect(client.FTSearch(ctx, "customers", `@id:{1121175}`, nil).Val()).To(Equal(
 			map[string]*ftsearch.QueryResult{
@@ -41,6 +37,7 @@ var _ = Describe("Query", func() {
 						"ip":            `148\.140\.255\.235`,
 						"account_id":    "1121175",
 						"account_owner": "nic.gibson",
+						"balance":       "927.00",
 					}}}))
 	})
 
@@ -50,12 +47,26 @@ var _ = Describe("Query", func() {
 		Expect(cmd.Len()).To(Equal(0))
 	})
 
-	It("will return empty results without content", func() {
+	It("can return all the results for a given tag", func() {
+		Expect(client.FTSearch(ctx, "customers", `@owner:{nic\.gibson}`, nil).Len()).To(Equal(10))
+	})
+
+})
+
+var _ = Describe("Query options", func() {
+
+	It("will return empty results - NOCONTENT", func() {
 		Expect(client.FTSearch(ctx, "customers", `@id:{1121175}`, ftsearch.NewQueryOptions().WithoutContent()).Val()).To(Equal(
 			map[string]*ftsearch.QueryResult{
 				"account:1121175": {
 					Score: 0,
 					Value: nil}}))
+	})
+
+	It("will return scores - WITHSCORES", func() {
+		cmd := client.FTSearch(ctx, "customers", `@id:{1121175}`, ftsearch.NewQueryOptions().WithScores())
+		Expect(cmd.Err()).NotTo(HaveOccurred())
+		Expect(cmd.Val()["account:1121175"].Score).Should(BeNumerically(">=", 1))
 	})
 
 })
