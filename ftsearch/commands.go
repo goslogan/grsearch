@@ -120,7 +120,7 @@ func (c *Client) FTDictAdd(ctx context.Context, dictionary string, terms ...stri
 		args[n+2] = term
 	}
 
-	cmd := redis.NewIntCmd(ctx, args)
+	cmd := redis.NewIntCmd(ctx, args...)
 	_ = c.Process(ctx, cmd)
 
 	return cmd
@@ -137,7 +137,18 @@ func (c *Client) FTDictDel(ctx context.Context, dictionary string, terms ...stri
 		args[n+2] = term
 	}
 
-	cmd := redis.NewIntCmd(ctx, args)
+	cmd := redis.NewIntCmd(ctx, args...)
+	_ = c.Process(ctx, cmd)
+
+	return cmd
+}
+
+// FTDictDump returns a slice containing all the terms in a dictionary
+func (c *Client) FTDictDump(ctx context.Context, dictionary string) *redis.StringSliceCmd {
+
+	args := []interface{}{"ft.dictdump", dictionary}
+
+	cmd := redis.NewStringSliceCmd(ctx, args...)
 	_ = c.Process(ctx, cmd)
 
 	return cmd
