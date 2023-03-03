@@ -83,3 +83,62 @@ func (c *Client) FTTagVals(ctx context.Context, index, tag string) *redis.String
 	_ = c.Process(ctx, cmd)
 	return cmd
 }
+
+// FTList returns a list of all the indexes currently defined
+func (c *Client) FTList(ctx context.Context) *redis.StringSliceCmd {
+	cmd := redis.NewStringSliceCmd(ctx)
+	_ = c.Process(ctx, cmd)
+	return cmd
+}
+
+// FTInfo returns information about an index
+func (c *Client) FTInfo(ctx context.Context, index string) *InfoCmd {
+	args := []interface{}{"ft.info", index}
+	cmd := NewInfoCmd(ctx, args)
+
+	if err := c.Process(ctx, cmd); err == nil {
+		cmd.parseResult()
+	}
+
+	return cmd
+}
+
+/*******************************************************************************
+*
+* DICTIONARIES
+*
+*
+*******************************************************************************/
+
+// FTDictAdd adds one more terms to a dictionary
+func (c *Client) FTDictAdd(ctx context.Context, dictionary string, terms ...string) *redis.IntCmd {
+
+	args := make([]interface{}, len(terms)+2)
+	args[0] = "ft.dictadd"
+	args[1] = dictionary
+	for n, term := range terms {
+		args[n+2] = term
+	}
+
+	cmd := redis.NewIntCmd(ctx, args)
+	_ = c.Process(ctx, cmd)
+
+	return cmd
+
+}
+
+// FTDictDel removes terms from a dictionary
+func (c *Client) FTDictDel(ctx context.Context, dictionary string, terms ...string) *redis.IntCmd {
+
+	args := make([]interface{}, len(terms)+2)
+	args[0] = "ft.dictdel"
+	args[1] = dictionary
+	for n, term := range terms {
+		args[n+2] = term
+	}
+
+	cmd := redis.NewIntCmd(ctx, args)
+	_ = c.Process(ctx, cmd)
+
+	return cmd
+}

@@ -151,7 +151,7 @@ func (i *IndexOptions) AsTemporary(secs uint64) *IndexOptions {
 
 // WithNoHighlight sets the IndexOptions' NoHighlight field to true
 func (i *IndexOptions) WithNoHighlight() *IndexOptions {
-	i.NoOffsets = true
+	i.NoHighlight = true
 	return i
 }
 

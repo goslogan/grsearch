@@ -179,7 +179,7 @@ func (q *QueryOptions) serialize() []interface{} {
 	}
 
 	for _, filter := range q.Filters {
-		args = append(args, filter.serialize())
+		args = append(args, filter.serialize()...)
 	}
 
 	args = append(args, serializeCountedArgs("RETURN", false, q.ReturnFields)...)
@@ -279,7 +279,7 @@ type QueryFilter struct {
 	Max       interface{} // as above
 }
 
-func NewQueryFilter(attribute string) *QueryFilter {
+func NewQueryFilter(attribute string) QueryFilter {
 	qf := &QueryFilter{Attribute: attribute}
 	return qf.
 		WithMinInclusive(math.Inf(-1)).
@@ -288,28 +288,28 @@ func NewQueryFilter(attribute string) *QueryFilter {
 
 // WithMinInclusive sets an inclusive minimum for the query filter value and
 // returns it
-func (qf *QueryFilter) WithMinInclusive(val float64) *QueryFilter {
+func (qf QueryFilter) WithMinInclusive(val float64) QueryFilter {
 	qf.Min = FilterValue(val, false)
 	return qf
 }
 
 // WithMaxInclusive sets an inclusive maximum for the query filter value and
 // returns it
-func (qf *QueryFilter) WithMaxInclusive(val float64) *QueryFilter {
+func (qf QueryFilter) WithMaxInclusive(val float64) QueryFilter {
 	qf.Max = FilterValue(val, false)
 	return qf
 }
 
 // WithMinExclusive sets an exclusive minimum for the query filter value and
 // returns it
-func (qf *QueryFilter) WithMinExclusive(val float64) *QueryFilter {
+func (qf QueryFilter) WithMinExclusive(val float64) QueryFilter {
 	qf.Min = FilterValue(val, true)
 	return qf
 }
 
 // WithMaxExclusive sets an exclusive maximum for the query filter value and
 // returns it
-func (qf *QueryFilter) WithMaxExclusive(val float64) *QueryFilter {
+func (qf QueryFilter) WithMaxExclusive(val float64) QueryFilter {
 	qf.Max = FilterValue(val, true)
 	return qf
 }

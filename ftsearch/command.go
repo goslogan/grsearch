@@ -177,3 +177,20 @@ func (cmd *ConfigGetCmd) Val() map[string]string {
 func (cmd *ConfigGetCmd) Result() (map[string]string, error) {
 	return cmd.Val(), cmd.Err()
 }
+
+/*******************************************************************************
+ ***** InfoCmd		 													  ******
+ *******************************************************************************/
+
+type InfoCmd struct {
+	redis.SliceCmd
+}
+
+func NewInfoCmd(ctx context.Context, args ...interface{}) *InfoCmd {
+	return &InfoCmd{
+		SliceCmd: *redis.NewSliceCmd(ctx, args...),
+	}
+}
+
+func (c *InfoCmd) parseResult() {
+}

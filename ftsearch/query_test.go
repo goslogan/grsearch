@@ -1,6 +1,8 @@
 package ftsearch_test
 
 import (
+	"math"
+
 	"github.com/RedisLabs-Solution-Architects/go-search/ftsearch"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -67,6 +69,14 @@ var _ = Describe("Query options", func() {
 		cmd := client.FTSearch(ctx, "customers", `@id:{1121175}`, ftsearch.NewQueryOptions().WithScores())
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		Expect(cmd.Val()["account:1121175"].Score).Should(BeNumerically(">=", 1))
+	})
+
+	It("will return filtered results - FILTER (numeric)", func() {
+		cmd := client.FTSearch(ctx, "customers", `@owner:{nic\.gibson}`, ftsearch.NewQueryOptions().
+			WithoutContent().
+			AddFilter(ftsearch.NewQueryFilter("balance").WithMinExclusive(0).WithMaxInclusive(math.Inf(1))))
+		Expect(cmd.Err()).NotTo(HaveOccurred())
+		Expect(len(cmd.Val())).To(Equal(2))
 	})
 
 })

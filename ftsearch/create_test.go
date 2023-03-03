@@ -46,4 +46,63 @@ var _ = Describe("Create", func() {
 		Expect(createCmd.String()).To(Equal("ft.create multiattrib on hash score 1 schema texttest as xxtext text numtest numeric sortable: true"))
 	})
 
+	It("can build a hash index with multiple schema entries and a different language", func() {
+		createCmd := client.FTCreateIndex(ctx, "language", ftsearch.NewIndexOptions().
+			AddSchemaAttribute(ftsearch.TextAttribute{
+				Name:  "texttest",
+				Alias: "xxtext",
+			}).
+			AddSchemaAttribute(ftsearch.NumericAttribute{
+				Name:     "numtest",
+				Sortable: true,
+			}).WithLanguage("german"))
+		Expect(createCmd.Err()).NotTo(HaveOccurred())
+		Expect(createCmd.String()).To(Equal("ft.create language on hash language german score 1 schema texttest as xxtext text numtest numeric sortable: true"))
+	})
+
+	It("can build an index with a language field and score field", func() {
+		createCmd := client.FTCreateIndex(ctx, "langscore", ftsearch.NewIndexOptions().AddSchemaAttribute(ftsearch.TextAttribute{
+			Name:  "foo",
+			Alias: "bar",
+		}).WithLanguageField("lng").WithScoreField("scr"))
+		Expect(createCmd.Err()).NotTo(HaveOccurred())
+		Expect(createCmd.String()).To(Equal("ft.create langscore on hash language_field lng score 1 score_field scr schema foo as bar text: true"))
+	})
+
+	It("can build an index with NOFIELDS", func() {
+		createCmd := client.FTCreateIndex(ctx, "nofields", ftsearch.NewIndexOptions().AddSchemaAttribute(ftsearch.TextAttribute{
+			Name:  "foo",
+			Alias: "bar",
+		}).WithNoFields())
+		Expect(createCmd.Err()).NotTo(HaveOccurred())
+		Expect(createCmd.String()).To(Equal("ft.create nofields on hash score 1 nofields schema foo as bar text: true"))
+	})
+
+	It("can build an index with NOHL", func() {
+		createCmd := client.FTCreateIndex(ctx, "nohl", ftsearch.NewIndexOptions().AddSchemaAttribute(ftsearch.TextAttribute{
+			Name:  "foo",
+			Alias: "bar",
+		}).WithNoHighlight())
+		Expect(createCmd.Err()).NotTo(HaveOccurred())
+		Expect(createCmd.String()).To(Equal("ft.create nohl on hash score 1 nohl schema foo as bar text: true"))
+	})
+
+	It("can build an index with NOOFFSETS", func() {
+		createCmd := client.FTCreateIndex(ctx, "nooff", ftsearch.NewIndexOptions().AddSchemaAttribute(ftsearch.TextAttribute{
+			Name:  "foo",
+			Alias: "bar",
+		}).WithNoOffsets())
+		Expect(createCmd.Err()).NotTo(HaveOccurred())
+		Expect(createCmd.String()).To(Equal("ft.create nooff on hash score 1 nooffsets schema foo as bar text: true"))
+	})
+
+	It("can build an index with NOFREQS", func() {
+		createCmd := client.FTCreateIndex(ctx, "nofr", ftsearch.NewIndexOptions().AddSchemaAttribute(ftsearch.TextAttribute{
+			Name:  "foo",
+			Alias: "bar",
+		}).WithNoFreqs())
+		Expect(createCmd.Err()).NotTo(HaveOccurred())
+		Expect(createCmd.String()).To(Equal("ft.create nofr on hash score 1 nofreqs schema foo as bar text: true"))
+	})
+
 })
