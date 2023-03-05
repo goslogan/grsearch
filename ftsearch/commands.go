@@ -184,3 +184,33 @@ func (c *Client) FTSynDump(ctx context.Context, index string) *SynonymDumpCmd {
 	}
 	return cmd
 }
+
+/*******************************************************************************
+*
+* ALIASES
+*
+*******************************************************************************/
+
+// FTAliasAdd add an alias to an index.
+func (c *Client) FTAliasAdd(ctx context.Context, alias, index string) *redis.BoolCmd {
+	args := []interface{}{"ft.aliasadd", alias, index}
+	cmd := redis.NewBoolCmd(ctx, args...)
+	_ = c.Process(ctx, cmd)
+	return cmd
+}
+
+// FTAliasDel deletes an alias
+func (c *Client) FTAliasDel(ctx context.Context, alias string) *redis.BoolCmd {
+	args := []interface{}{"ft.aliasdel", alias}
+	cmd := redis.NewBoolCmd(ctx, args...)
+	_ = c.Process(ctx, cmd)
+	return cmd
+}
+
+// FTAliasDel deletes an alias
+func (c *Client) FTAliasUpdate(ctx context.Context, alias, index string) *redis.BoolCmd {
+	args := []interface{}{"ft.aliasupdate", alias, index}
+	cmd := redis.NewBoolCmd(ctx, args...)
+	_ = c.Process(ctx, cmd)
+	return cmd
+}
