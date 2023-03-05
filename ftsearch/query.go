@@ -7,12 +7,14 @@ import (
 )
 
 type QueryOptions struct {
-	NoContent   bool
-	Verbatim    bool
-	NoStopWords bool
-	Scores      bool // WithScores but we need that for the API name
-	InOrder     bool
-	// ExplainScore bool
+	NoContent    bool
+	Verbatim     bool
+	NoStopWords  bool
+	Scores       bool // WITHSCORES but we need that for the API name
+	Payloads     bool // WITHPAYLOADS but we need that for the API name
+	SortKeys     bool // WITHSORTKEYS but we need that for the API name
+	InOrder      bool
+	ExplainScore bool // NOT YET IMPLEMENTED
 	Limit        *queryLimit
 	ReturnFields []string
 	Filters      []QueryFilter
@@ -22,6 +24,7 @@ type QueryOptions struct {
 	Slop         int32
 	Summarize    *querySummarize
 	HighLight    *queryHighlight
+	GeoFilter    *geoFilter
 	resultSize   int
 }
 
@@ -32,6 +35,10 @@ const (
 	defaultSumarizeSeparator = "..."
 	defaultSummarizeLen      = 20
 	defaultSummarizeFrags    = 3
+	geoMiles                 = "mi"
+	geoFeet                  = "f"
+	geoKilimetres            = "km"
+	geoMetres                = "m"
 )
 
 type QueryResult struct {
@@ -157,50 +164,53 @@ func (q *QueryOptions) WithoutScores() *QueryOptions {
 	return q
 }
 
+// WithPayloads sets the PAYLOADS option for searches
+func (q *QueryOptions) WithPayloads() *QueryOptions {
+	q.Payloads = true
+	return q
+}
+
+// WithooutPayloads sets the PAYLOADS option for searches
+func (q *QueryOptions) WithoutPayloads() *QueryOptions {
+	q.Payloads = false
+	return q
+}
+
+// WithGeoFilter adds a geographic filter to the query
+func (q *QueryOptions) WithGeoFilter(gf *geoFilter) *QueryOptions {
+	q.GeoFilter = gf
+	return q
+}
+
 // serialize converts a query struct to a slice of  interface{}
 // ready for execution against Redis
 func (q *QueryOptions) serialize() []interface{} {
 	var args = []interface{}{}
 
-	if q.NoContent {
-		args = append(args, "NOCONTENT")
+	args = q.appendArgs(args, q.NoContent, "nocontent")
+	args = q.appendArgs(args, q.Verbatim, "verbatim")
+	args = q.appendArgs(args, q.NoStopWords, "nostopwords")
+	args = q.appendArgs(args, q.Scores, "withscores")
+	args = q.appendArgs(args, q.Payloads, "withpayloads")
+	args = q.appendArgs(args, q.SortKeys, "withsortkeys")
+	args = append(args, q.serializeFilters()...)
+	if q.GeoFilter != nil {
+		args = append(args, q.GeoFilter.serialize()...)
+
 	}
-
-	if q.Verbatim {
-		args = append(args, "VERBATIM")
-	}
-
-	if q.NoStopWords {
-		args = append(args, "NOSTOPWORDS")
-	}
-
-	if q.Scores {
-		args = append(args, "WITHSCORES")
-	}
-
-	for _, filter := range q.Filters {
-		args = append(args, filter.serialize()...)
-	}
-
-	args = append(args, serializeCountedArgs("RETURN", false, q.ReturnFields)...)
-
+	args = append(args, serializeCountedArgs("return", false, q.ReturnFields)...)
 	if q.Summarize != nil {
 		args = append(args, q.Summarize.serialize()...)
 	}
-
 	if q.HighLight != nil {
 		args = append(args, q.HighLight.serialize()...)
 	}
 
 	args = append(args, q.serializeSlop()...)
-
-	if q.InOrder {
-		args = append(args, "INORDER")
-	}
-
+	args = q.appendArgs(args, q.InOrder, "inorder")
 	args = append(args, q.serializeLanguage()...)
-	args = append(args, serializeCountedArgs("INKEYS", false, q.InKeys)...)
-	args = append(args, serializeCountedArgs("INFIELDS", false, q.InFields)...)
+	args = append(args, serializeCountedArgs("inkeys", false, q.InKeys)...)
+	args = append(args, serializeCountedArgs("infields", false, q.InFields)...)
 
 	//if q.ExplainScore {
 	//	args = append(args, INSCORE")
@@ -215,7 +225,7 @@ func (q *QueryOptions) serialize() []interface{} {
 
 func (q *QueryOptions) serializeSlop() []interface{} {
 	if q.Slop != noSlop {
-		return []interface{}{"SLOP", q.Slop}
+		return []interface{}{"slop", q.Slop}
 	} else {
 		return nil
 	}
@@ -223,7 +233,7 @@ func (q *QueryOptions) serializeSlop() []interface{} {
 
 func (q *QueryOptions) serializeLanguage() []interface{} {
 	if q.Language != "" {
-		return []interface{}{"LANGUAGE", q.Language}
+		return []interface{}{"language", q.Language}
 	} else {
 		return nil
 	}
@@ -316,7 +326,7 @@ func (qf QueryFilter) WithMaxExclusive(val float64) QueryFilter {
 
 // serialize converts a filter list to an array of interface{} objects for execution
 func (q QueryFilter) serialize() []interface{} {
-	return []interface{}{"FILTER", q.Attribute, q.Min, q.Max}
+	return []interface{}{"filter", q.Attribute, q.Min, q.Max}
 }
 
 /******************************************************************************
@@ -345,7 +355,7 @@ func (ql *queryLimit) serialize() []interface{} {
 	if ql.First == defaultOffset && ql.Num == defaultLimit {
 		return nil
 	} else {
-		return []interface{}{"LIMIT", ql.First, ql.Num}
+		return []interface{}{"limit", ql.First, ql.Num}
 	}
 }
 
@@ -414,11 +424,11 @@ func (s *querySummarize) AddField(field string) *querySummarize {
 
 // serialize prepares the summarisation to be passed to Redis.
 func (s *querySummarize) serialize() []interface{} {
-	args := []interface{}{"SUMMARIZE"}
+	args := []interface{}{"summarize"}
 	args = append(args, serializeCountedArgs("fields", false, s.Fields)...)
-	args = append(args, "FRAGS", s.Frags)
-	args = append(args, "LEN", s.Len)
-	args = append(args, "SEPARATOR", s.Separator)
+	args = append(args, "frags", s.Frags)
+	args = append(args, "len", s.Len)
+	args = append(args, "separator", s.Separator)
 	return args
 }
 
@@ -458,11 +468,54 @@ func (h *queryHighlight) serialize() []interface{} {
 	args := []interface{}{"HIGHLIGHT"}
 	args = append(args, serializeCountedArgs("fields", false, h.Fields)...)
 	if h.OpenTag != "" || h.CloseTag != "" {
-		args = append(args, "TAGS", h.OpenTag, h.CloseTag)
+		args = append(args, "tags", h.OpenTag, h.CloseTag)
 	}
 	return args
 }
 
 /******************************************************************************
+* Geofilters
+******************************************************************************/
+
+// geoFilter represents a location and radius to be used in a search query
+type geoFilter struct {
+	Attribute         string
+	Long, Lat, Radius float64
+	Units             string
+}
+
+func NewGeoFilter(Attribute string, Long, Lat, Radius float64, Units string) *geoFilter {
+	return &geoFilter{
+		Attribute: Attribute,
+		Long:      Long,
+		Lat:       Lat,
+		Radius:    Radius,
+		Units:     Units,
+	}
+}
+
+func (gf *geoFilter) serialize() []interface{} {
+	return []interface{}{"geofilter", gf.Attribute, gf.Long, gf.Lat, gf.Radius, gf.Units}
+}
+
+/******************************************************************************
 * Internal utilities                                                          *
 ******************************************************************************/
+
+// appendArgs appends the values to args if flag is true. args is returned
+func (q *QueryOptions) appendArgs(args []interface{}, flag bool, values ...interface{}) []interface{} {
+	if flag {
+		return append(args, values...)
+	} else {
+		return args
+	}
+}
+
+// serialize the filters
+func (q *QueryOptions) serializeFilters() []interface{} {
+	args := []interface{}{}
+	for _, f := range q.Filters {
+		args = append(args, f.serialize()...)
+	}
+	return args
+}
