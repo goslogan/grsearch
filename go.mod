@@ -1,4 +1,4 @@
-module github.com/RedisLabs-Solution-Architects/go-search
+module github.com/RedisLabs-Solution-Architects/go-redis-stack
 
 go 1.18
 

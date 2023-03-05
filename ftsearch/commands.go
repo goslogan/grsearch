@@ -107,7 +107,6 @@ func (c *Client) FTInfo(ctx context.Context, index string) *InfoCmd {
 *
 * DICTIONARIES
 *
-*
 *******************************************************************************/
 
 // FTDictAdd adds one more terms to a dictionary
@@ -151,5 +150,37 @@ func (c *Client) FTDictDump(ctx context.Context, dictionary string) *redis.Strin
 	cmd := redis.NewStringSliceCmd(ctx, args...)
 	_ = c.Process(ctx, cmd)
 
+	return cmd
+}
+
+/*******************************************************************************
+*
+* SYNONYMS
+*
+*******************************************************************************/
+
+// FTSynUpdate adds to or modifies a synonym group
+func (c *Client) FTSynUpdate(ctx context.Context, index string, group string, terms ...string) *redis.BoolCmd {
+	args := make([]interface{}, len(terms)+3)
+	args[0] = "ft.synupdate"
+	args[1] = index
+	args[2] = group
+	for n, term := range terms {
+		args[n+2] = term
+	}
+
+	cmd := redis.NewBoolCmd(ctx, args...)
+	_ = c.Process(ctx, cmd)
+
+	return cmd
+}
+
+// FTSynDump returns the contents of synonym map for an index
+func (c *Client) FTSynDump(ctx context.Context, index string) *SynonymDumpCmd {
+	args := []interface{}{"ft.syndump", index}
+	cmd := NewSynonymDumpCmd(ctx, args...)
+	if err := c.Process(ctx, cmd); err == nil {
+		cmd.parseResult()
+	}
 	return cmd
 }

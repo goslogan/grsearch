@@ -3,7 +3,7 @@ package ftsearch_test
 import (
 	"math"
 
-	"github.com/RedisLabs-Solution-Architects/go-search/ftsearch"
+	"github.com/RedisLabs-Solution-Architects/go-redis-stack/ftsearch"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

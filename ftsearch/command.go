@@ -163,7 +163,6 @@ func (c *ConfigGetCmd) parseResult() {
 		}
 		c.SetVal(configs)
 	}
-
 }
 
 func (cmd *ConfigGetCmd) SetVal(val map[string]string) {
@@ -179,8 +178,55 @@ func (cmd *ConfigGetCmd) Result() (map[string]string, error) {
 }
 
 /*******************************************************************************
- ***** InfoCmd		 													  ******
- *******************************************************************************/
+*
+* SynDumpCmd
+*
+*******************************************************************************/
+
+type SynonymDumpCmd struct {
+	redis.Cmd
+	val map[string][]string
+}
+
+func NewSynonymDumpCmd(ctx context.Context, args ...interface{}) *SynonymDumpCmd {
+	return &SynonymDumpCmd{
+		Cmd: *redis.NewCmd(ctx, args...),
+	}
+}
+
+func (c *SynonymDumpCmd) parseResult() {
+	if result, err := c.Slice(); err == nil {
+		synonymMap := make(map[string][]string)
+		for n := 0; n < len(result); n += 2 {
+			synonym := result[n].(string)
+			groups := make([]string, len(result[n+1].([]interface{})))
+			for m, group := range result[n+1].([]interface{}) {
+				groups[m] = group.(string)
+			}
+			synonymMap[synonym] = groups
+
+		}
+		c.SetVal(synonymMap)
+	}
+}
+
+func (cmd *SynonymDumpCmd) SetVal(val map[string][]string) {
+	cmd.val = val
+}
+
+func (cmd *SynonymDumpCmd) Val() map[string][]string {
+	return cmd.val
+}
+
+func (cmd *SynonymDumpCmd) Result() (map[string][]string, error) {
+	return cmd.Val(), cmd.Err()
+}
+
+/*******************************************************************************
+*
+* InfoCmd
+*
+*******************************************************************************/
 
 type InfoCmd struct {
 	redis.SliceCmd
@@ -193,4 +239,19 @@ func NewInfoCmd(ctx context.Context, args ...interface{}) *InfoCmd {
 }
 
 func (c *InfoCmd) parseResult() {
+}
+
+/*******************************************************************************
+*
+* Wrappers
+*
+*******************************************************************************/
+
+type SearchAdaptor struct{}
+
+func (sa *SearchAdaptor) PostProcess() {}
+
+type SearchBoolCmd struct {
+	redis.BoolCmd
+	SearchAdaptor
 }

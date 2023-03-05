@@ -6,7 +6,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/RedisLabs-Solution-Architects/go-search/ftsearch"
+	"github.com/RedisLabs-Solution-Architects/go-redis-stack/ftsearch"
 )
 
 var _ = Describe("Drop", func() {
