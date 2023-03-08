@@ -16,12 +16,14 @@ type QueryOptions struct {
 	InOrder      bool
 	ExplainScore bool // NOT YET IMPLEMENTED
 	Limit        *queryLimit
-	ReturnFields []string
+	ReturnFields [][]string
 	Filters      []QueryFilter
 	InKeys       []string
 	InFields     []string
 	Language     string
 	Slop         int32
+	Expander     string
+	Scorer       string
 	Summarize    *querySummarize
 	HighLight    *queryHighlight
 	GeoFilter    *geoFilter
@@ -73,16 +75,17 @@ func (q *QueryOptions) WithLimit(first int64, num int64) *QueryOptions {
 }
 
 // WithReturnFields sets the return fields, replacing any which
-// might currently be set, returning the updated qry.
-func (q *QueryOptions) WithReturnFields(fields []string) *QueryOptions {
+// might currently be set, returning the updated qry. The fields array
+// should consist of pairs of strings (identifier & alias)
+func (q *QueryOptions) WithReturnFields(fields [][]string) *QueryOptions {
 	q.ReturnFields = fields
 	return q
 }
 
 // AddReturnField appends a single field to the return fields,
 // returning the updated query
-func (q *QueryOptions) AddReturnField(field string) *QueryOptions {
-	q.ReturnFields = append(q.ReturnFields, field)
+func (q *QueryOptions) AddReturnField(identifier string, alias string) *QueryOptions {
+	q.ReturnFields = append(q.ReturnFields, []string{identifier, alias})
 	return q
 }
 
@@ -187,18 +190,18 @@ func (q *QueryOptions) WithGeoFilter(gf *geoFilter) *QueryOptions {
 func (q *QueryOptions) serialize() []interface{} {
 	var args = []interface{}{}
 
-	args = q.appendArgs(args, q.NoContent, "nocontent")
-	args = q.appendArgs(args, q.Verbatim, "verbatim")
-	args = q.appendArgs(args, q.NoStopWords, "nostopwords")
-	args = q.appendArgs(args, q.Scores, "withscores")
-	args = q.appendArgs(args, q.Payloads, "withpayloads")
-	args = q.appendArgs(args, q.SortKeys, "withsortkeys")
+	args = q.appendFlagArg(args, q.NoContent, "nocontent")
+	args = q.appendFlagArg(args, q.Verbatim, "verbatim")
+	args = q.appendFlagArg(args, q.NoStopWords, "nostopwords")
+	args = q.appendFlagArg(args, q.Scores, "withscores")
+	args = q.appendFlagArg(args, q.Payloads, "withpayloads")
+	args = q.appendFlagArg(args, q.SortKeys, "withsortkeys")
 	args = append(args, q.serializeFilters()...)
 	if q.GeoFilter != nil {
 		args = append(args, q.GeoFilter.serialize()...)
 
 	}
-	args = append(args, serializeCountedArgs("return", false, q.ReturnFields)...)
+	args = append(args, q.serializeReturnFields()...)
 	if q.Summarize != nil {
 		args = append(args, q.Summarize.serialize()...)
 	}
@@ -206,9 +209,10 @@ func (q *QueryOptions) serialize() []interface{} {
 		args = append(args, q.HighLight.serialize()...)
 	}
 
-	args = append(args, q.serializeSlop()...)
-	args = q.appendArgs(args, q.InOrder, "inorder")
-	args = append(args, q.serializeLanguage()...)
+	args = q.appendStringArg(args, "slop", fmt.Sprintf("%d", q.Slop))
+	args = q.appendFlagArg(args, q.InOrder, "inorder")
+	args = q.appendStringArg(args, "language", q.Language)
+
 	args = append(args, serializeCountedArgs("inkeys", false, q.InKeys)...)
 	args = append(args, serializeCountedArgs("infields", false, q.InFields)...)
 
@@ -223,17 +227,17 @@ func (q *QueryOptions) serialize() []interface{} {
 	return args
 }
 
-func (q *QueryOptions) serializeSlop() []interface{} {
-	if q.Slop != noSlop {
-		return []interface{}{"slop", q.Slop}
-	} else {
-		return nil
-	}
-}
-
-func (q *QueryOptions) serializeLanguage() []interface{} {
-	if q.Language != "" {
-		return []interface{}{"language", q.Language}
+func (q *QueryOptions) serializeReturnFields() []interface{} {
+	if len(q.ReturnFields) > 0 {
+		fields := []interface{}{"return", len(q.ReturnFields)}
+		for _, field := range q.ReturnFields {
+			if len(field) == 1 || field[1] != "" {
+				fields = append(fields, field[0])
+			} else {
+				fields = append(fields, field[0], "as", field[1])
+			}
+		}
+		return fields
 	} else {
 		return nil
 	}
@@ -257,6 +261,33 @@ func (q *QueryOptions) setResultSize() {
 	//	}
 
 	q.resultSize = count
+}
+
+// appendFlagArg appends the values to args if flag is true. args is returned
+func (q *QueryOptions) appendFlagArg(args []interface{}, flag bool, value string) []interface{} {
+	if flag {
+		return append(args, value)
+	} else {
+		return args
+	}
+}
+
+// appendStringArg appends the name and value if value is not empty
+func (q *QueryOptions) appendStringArg(args []interface{}, name, value string) []interface{} {
+	if value != "" {
+		return append(args, name, value)
+	} else {
+		return args
+	}
+}
+
+// serialize the filters
+func (q *QueryOptions) serializeFilters() []interface{} {
+	args := []interface{}{}
+	for _, f := range q.Filters {
+		args = append(args, f.serialize()...)
+	}
+	return args
 }
 
 /******************************************************************************
@@ -501,21 +532,3 @@ func (gf *geoFilter) serialize() []interface{} {
 /******************************************************************************
 * Internal utilities                                                          *
 ******************************************************************************/
-
-// appendArgs appends the values to args if flag is true. args is returned
-func (q *QueryOptions) appendArgs(args []interface{}, flag bool, values ...interface{}) []interface{} {
-	if flag {
-		return append(args, values...)
-	} else {
-		return args
-	}
-}
-
-// serialize the filters
-func (q *QueryOptions) serializeFilters() []interface{} {
-	args := []interface{}{}
-	for _, f := range q.Filters {
-		args = append(args, f.serialize()...)
-	}
-	return args
-}
