@@ -106,17 +106,26 @@ func (cmd *QueryCmd) parseResult() error {
 	for i := 1; i < len(rawResults); i += resultSize {
 		j := 0
 		var score float64 = 0
+		var explanation []interface{}
 
 		key := rawResults[i+j].(string)
 		j++
 
 		if cmd.options.Scores {
-			score, _ = rawResults[i+j].(float64)
+			if cmd.options.ExplainScore {
+				scoreData := rawResults[i+j].([]interface{})
+				score = scoreData[0].(float64)
+				explanation = scoreData[1].([]interface{})
+
+			} else {
+				score, _ = rawResults[i+j].(float64)
+			}
 			j++
 		}
 
 		result := QueryResult{
-			Score: score,
+			Score:       score,
+			Explanation: explanation,
 		}
 
 		if !cmd.options.NoContent {

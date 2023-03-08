@@ -79,4 +79,12 @@ var _ = Describe("Query options", func() {
 		Expect(len(cmd.Val())).To(Equal(2))
 	})
 
+	It("can explain a score", func() {
+		cmd := client.FTSearch(ctx, "customers", `@owner:{nic\.gibson}`, ftsearch.NewQueryOptions().
+			WithScores().WithExplainScore())
+		Expect(cmd.Err()).NotTo(HaveOccurred())
+		Expect(len(cmd.Val())).NotTo(BeZero())
+		Expect(cmd.Val()["account:806396"].Explanation).NotTo(BeNil())
+	})
+
 })

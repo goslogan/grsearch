@@ -14,7 +14,7 @@ type QueryOptions struct {
 	Payloads     bool // WITHPAYLOADS but we need that for the API name
 	SortKeys     bool // WITHSORTKEYS but we need that for the API name
 	InOrder      bool
-	ExplainScore bool // NOT YET IMPLEMENTED
+	ExplainScore bool
 	Limit        *queryLimit
 	ReturnFields [][]string
 	Filters      []QueryFilter
@@ -167,6 +167,18 @@ func (q *QueryOptions) WithoutScores() *QueryOptions {
 	return q
 }
 
+// WithExplainScore sets the EXPLAINSCORE option for searches.
+func (q *QueryOptions) WithExplainScore() *QueryOptions {
+	q.ExplainScore = true
+	return q
+}
+
+// WithoutExplainScore clears the EXPLAINSCORE option for searches.
+func (q *QueryOptions) WithoutExplainScore() *QueryOptions {
+	q.ExplainScore = false
+	return q
+}
+
 // WithPayloads sets the PAYLOADS option for searches
 func (q *QueryOptions) WithPayloads() *QueryOptions {
 	q.Payloads = true
@@ -209,16 +221,16 @@ func (q *QueryOptions) serialize() []interface{} {
 		args = append(args, q.HighLight.serialize()...)
 	}
 
-	args = q.appendStringArg(args, "slop", fmt.Sprintf("%d", q.Slop))
+	if q.Slop != noSlop {
+		args = q.appendStringArg(args, "slop", fmt.Sprintf("%d", q.Slop))
+	}
 	args = q.appendFlagArg(args, q.InOrder, "inorder")
 	args = q.appendStringArg(args, "language", q.Language)
 
 	args = append(args, serializeCountedArgs("inkeys", false, q.InKeys)...)
 	args = append(args, serializeCountedArgs("infields", false, q.InFields)...)
 
-	//if q.ExplainScore {
-	//	args = append(args, INSCORE")
-	//}
+	args = q.appendFlagArg(args, q.ExplainScore && q.Scores, "EXPLAINSCORE")
 
 	if q.Limit != nil {
 		args = append(args, q.Limit.serialize()...)
@@ -255,10 +267,6 @@ func (q *QueryOptions) setResultSize() {
 	if q.NoContent { // one less if not content
 		count -= 1
 	}
-
-	//if q.ExplainScore { // one more if explaining
-	//		count += 1
-	//	}
 
 	q.resultSize = count
 }
