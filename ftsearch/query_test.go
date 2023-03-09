@@ -87,4 +87,16 @@ var _ = Describe("Query options", func() {
 		Expect(cmd.Val()["account:806396"].Explanation).NotTo(BeNil())
 	})
 
+	It("can sort results", func() {
+		results := []string{}
+		cmd := client.FTSearch(ctx, "customers", `@owner:{nic\.gibson}`, ftsearch.NewQueryOptions().
+			WithoutContent().WithSortBy("customer"))
+		Expect(cmd.Err()).NotTo(HaveOccurred())
+		for k := range cmd.Val() {
+			results = append(results, k)
+		}
+		Expect(results).To(ConsistOf([]string{"account:1339089", "account:239155", "account:575072", "account:765279", "account:1826581", "account:1371128", "account:1121175", "account:886088", "account:806396", "account:507187"}))
+
+	})
+
 })

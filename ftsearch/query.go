@@ -24,6 +24,8 @@ type QueryOptions struct {
 	Slop         int32
 	Expander     string
 	Scorer       string
+	SortBy       string
+	SortOrder    string
 	Summarize    *querySummarize
 	HighLight    *queryHighlight
 	GeoFilter    *geoFilter
@@ -37,10 +39,12 @@ const (
 	defaultSumarizeSeparator = "..."
 	defaultSummarizeLen      = 20
 	defaultSummarizeFrags    = 3
-	geoMiles                 = "mi"
-	geoFeet                  = "f"
-	geoKilimetres            = "km"
-	geoMetres                = "m"
+	GeoMiles                 = "mi"
+	GeoFeet                  = "f"
+	GeoKilimetres            = "km"
+	GeoMetres                = "m"
+	SortAsc                  = "ASC"
+	SortDesc                 = "DESC"
 )
 
 type QueryResult struct {
@@ -56,8 +60,9 @@ type QueryResult struct {
 // NewQuery creates a new query with defaults set
 func NewQueryOptions() *QueryOptions {
 	return &QueryOptions{
-		Limit: DefaultQueryLimit(),
-		Slop:  noSlop,
+		Limit:  DefaultQueryLimit(),
+		Slop:   noSlop,
+		SortBy: SortAsc,
 	}
 }
 
@@ -140,6 +145,24 @@ func (q *QueryOptions) WithSummarize(s *querySummarize) *QueryOptions {
 // WithHighlight sets the Highlight member of the query, returning the updated query.
 func (q *QueryOptions) WithHighlight(h *queryHighlight) *QueryOptions {
 	q.HighLight = h
+	return q
+}
+
+// WithSortBy sets the value of the sortby option to the query.
+func (q *QueryOptions) WithSortBy(field string) *QueryOptions {
+	q.SortBy = field
+	return q
+}
+
+// Ascending sets the sort order of the query results to ascending if sortby is set
+func (q *QueryOptions) Ascending() *QueryOptions {
+	q.SortOrder = SortAsc
+	return q
+}
+
+// Descending sets the sort order of the query results to ascending if sortby is set
+func (q *QueryOptions) Descending() *QueryOptions {
+	q.SortOrder = SortDesc
 	return q
 }
 
