@@ -4,6 +4,7 @@ package ftsearch
 import (
 	"fmt"
 	"math"
+	"time"
 )
 
 type QueryOptions struct {
@@ -21,11 +22,13 @@ type QueryOptions struct {
 	InKeys       []string
 	InFields     []string
 	Language     string
-	Slop         int32
+	Slop         int8
 	Expander     string
 	Scorer       string
 	SortBy       string
 	SortOrder    string
+	Dialect      uint8
+	Timeout      time.Duration
 	Summarize    *querySummarize
 	HighLight    *queryHighlight
 	GeoFilter    *geoFilter
@@ -45,6 +48,7 @@ const (
 	GeoMetres                = "m"
 	SortAsc                  = "ASC"
 	SortDesc                 = "DESC"
+	defaultDialect           = 2
 )
 
 type QueryResult struct {
@@ -60,9 +64,10 @@ type QueryResult struct {
 // NewQuery creates a new query with defaults set
 func NewQueryOptions() *QueryOptions {
 	return &QueryOptions{
-		Limit:  DefaultQueryLimit(),
-		Slop:   noSlop,
-		SortBy: SortAsc,
+		Limit:   DefaultQueryLimit(),
+		Slop:    noSlop,
+		SortBy:  SortAsc,
+		Dialect: defaultDialect,
 	}
 }
 
@@ -76,6 +81,18 @@ func (q *QueryOptions) String() string {
 // the limit added (to allow chaining)
 func (q *QueryOptions) WithLimit(first int64, num int64) *QueryOptions {
 	q.Limit = NewQueryLimit(first, num)
+	return q
+}
+
+// WithDialect sets the dialect option for the query. It is NOT checked.
+func (q *QueryOptions) WithDialect(version uint8) *QueryOptions {
+	q.Dialect = version
+	return q
+}
+
+// WithTimeout sets the timeout for the query, overriding the dedault
+func (q *QueryOptions) WithTimeout(timeout time.Duration) *QueryOptions {
+	q.Timeout = timeout
 	return q
 }
 
