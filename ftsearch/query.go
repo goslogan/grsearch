@@ -16,8 +16,8 @@ type QueryOptions struct {
 	SortKeys     bool // WITHSORTKEYS but we need that for the API name
 	InOrder      bool
 	ExplainScore bool
-	Limit        *queryLimit
-	ReturnFields [][]string
+	Limit        *limit
+	Return       []QueryReturn
 	Filters      []QueryFilter
 	InKeys       []string
 	InFields     []string
@@ -29,16 +29,18 @@ type QueryOptions struct {
 	SortOrder    string
 	Dialect      uint8
 	Timeout      time.Duration
-	Summarize    *querySummarize
-	HighLight    *queryHighlight
-	GeoFilter    *geoFilter
+	Summarize    *QuerySummarize
+	HighLight    *QueryHighlight
+	GeoFilter    *GeoFilter
+	Params       map[string]interface{}
 	resultSize   int
 }
 
 const (
 	noSlop                   = -100 // impossible value for slop to indicate none set
-	defaultOffset            = 0    // default first value for return offset
-	defaultLimit             = 10   // default number of results to return
+	DefaultOffset            = 0    // default first value for return offset
+	DefaultLimit             = 10   // default number of results to return
+	noLimit                  = 0
 	defaultSumarizeSeparator = "..."
 	defaultSummarizeLen      = 20
 	defaultSummarizeFrags    = 3
@@ -80,7 +82,7 @@ func (q *QueryOptions) String() string {
 // WithLimit adds a limit to a query, returning the Query with
 // the limit added (to allow chaining)
 func (q *QueryOptions) WithLimit(first int64, num int64) *QueryOptions {
-	q.Limit = NewQueryLimit(first, num)
+	q.Limit = NewLimit(first, num)
 	return q
 }
 
@@ -96,18 +98,33 @@ func (q *QueryOptions) WithTimeout(timeout time.Duration) *QueryOptions {
 	return q
 }
 
-// WithReturnFields sets the return fields, replacing any which
+/******************************************************************************
+* Functions operating on the return arguments								  *
+******************************************************************************/
+
+type QueryReturn struct {
+	Name string
+	As   string
+}
+
+// WithReturn sets the return fields, replacing any which
 // might currently be set, returning the updated qry. The fields array
 // should consist of pairs of strings (identifier & alias)
-func (q *QueryOptions) WithReturnFields(fields [][]string) *QueryOptions {
-	q.ReturnFields = fields
+func (q *QueryOptions) WithReturn(fields []QueryReturn) *QueryOptions {
+	q.Return = fields
 	return q
 }
 
-// AddReturnField appends a single field to the return fields,
+// AddReturn appends a single field to the return fields,
 // returning the updated query
-func (q *QueryOptions) AddReturnField(identifier string, alias string) *QueryOptions {
-	q.ReturnFields = append(q.ReturnFields, []string{identifier, alias})
+func (q *QueryOptions) AddReturn(identifier string, alias string) *QueryOptions {
+	q.Return = append(q.Return, QueryReturn{Name: identifier, As: alias})
+	return q
+}
+
+// ClearReturn removes any return fields set and returns the updated query
+func (q *QueryOptions) ClearReturn() *QueryOptions {
+	q.Return = []QueryReturn{}
 	return q
 }
 
@@ -154,13 +171,13 @@ func (q *QueryOptions) AddField(field string) *QueryOptions {
 }
 
 // WithSummarize sets the Summarize member of the query, returning the updated query.
-func (q *QueryOptions) WithSummarize(s *querySummarize) *QueryOptions {
+func (q *QueryOptions) WithSummarize(s *QuerySummarize) *QueryOptions {
 	q.Summarize = s
 	return q
 }
 
 // WithHighlight sets the Highlight member of the query, returning the updated query.
-func (q *QueryOptions) WithHighlight(h *queryHighlight) *QueryOptions {
+func (q *QueryOptions) WithHighlight(h *QueryHighlight) *QueryOptions {
 	q.HighLight = h
 	return q
 }
@@ -232,8 +249,26 @@ func (q *QueryOptions) WithoutPayloads() *QueryOptions {
 }
 
 // WithGeoFilter adds a geographic filter to the query
-func (q *QueryOptions) WithGeoFilter(gf *geoFilter) *QueryOptions {
+func (q *QueryOptions) WithGeoFilter(gf *GeoFilter) *QueryOptions {
 	q.GeoFilter = gf
+	return q
+}
+
+// WithoutGeoFilter removes a georgaphic filter if one is set
+func (q *QueryOptions) WithoutGeoFilter() *QueryOptions {
+	q.GeoFilter = nil
+	return q
+}
+
+// WithParam sets the value of a query parameter.
+func (q *QueryOptions) WithParam(name string, value interface{}) *QueryOptions {
+	q.Params[name] = value
+	return q
+}
+
+// WithoutParam removes a parameter from search options
+func (q *QueryOptions) WithoutParam(name string) *QueryOptions {
+	delete(q.Params, name)
 	return q
 }
 
@@ -253,7 +288,7 @@ func (q *QueryOptions) serialize() []interface{} {
 		args = append(args, q.GeoFilter.serialize()...)
 
 	}
-	args = append(args, q.serializeReturnFields()...)
+	args = append(args, q.serializeReturn()...)
 	if q.Summarize != nil {
 		args = append(args, q.Summarize.serialize()...)
 	}
@@ -273,20 +308,20 @@ func (q *QueryOptions) serialize() []interface{} {
 	args = q.appendFlagArg(args, q.ExplainScore && q.Scores, "EXPLAINSCORE")
 
 	if q.Limit != nil {
-		args = append(args, q.Limit.serialize()...)
+		args = append(args, q.Limit.serializeForSearch()...)
 	}
 
 	return args
 }
 
-func (q *QueryOptions) serializeReturnFields() []interface{} {
-	if len(q.ReturnFields) > 0 {
-		fields := []interface{}{"return", len(q.ReturnFields)}
-		for _, field := range q.ReturnFields {
-			if len(field) == 1 || field[1] != "" {
-				fields = append(fields, field[0])
+func (q *QueryOptions) serializeReturn() []interface{} {
+	if len(q.Return) > 0 {
+		fields := []interface{}{"return", len(q.Return)}
+		for _, ret := range q.Return {
+			if ret.As == "" {
+				fields = append(fields, ret.Name)
 			} else {
-				fields = append(fields, field[0], "as", field[1])
+				fields = append(fields, ret.Name, "as", ret.As)
 			}
 		}
 		return fields
@@ -413,28 +448,43 @@ func (q QueryFilter) serialize() []interface{} {
 ******************************************************************************/
 
 // queryLimit defines the results by offset and number.
-type queryLimit struct {
-	First int64
-	Num   int64
+type limit struct {
+	Offset int64
+	Num    int64
 }
 
-// NewQueryLimit returns an initialized QueryLimit struct
-func NewQueryLimit(first int64, num int64) *queryLimit {
-	return &queryLimit{First: first, Num: num}
+// NewQueryLimit returns an initialized limit struct
+func NewLimit(first int64, num int64) *limit {
+	return &limit{Offset: first, Num: num}
 }
 
-// DefaultQueryLimit returns an initialzied QueryLimit struct with the
-// default limit range
-func DefaultQueryLimit() *queryLimit {
-	return NewQueryLimit(defaultOffset, defaultLimit)
+// DefaultQueryLimit returns an initialzied limit struct with the
+// default limit range for use in FT.SEARCH
+func DefaultQueryLimit() *limit {
+	return NewLimit(DefaultOffset, DefaultLimit)
 }
 
-// Serialize the limit for output
-func (ql *queryLimit) serialize() []interface{} {
-	if ql.First == defaultOffset && ql.Num == defaultLimit {
+// DefaultAggregateLimit returns an blank limit struct for use
+// in FT.AGGREGATE
+func DefaultAggregateLimit() *limit {
+	return NewLimit(DefaultOffset, noLimit)
+}
+
+// Serialize the limit for output in an FT.SEARCH
+func (ql *limit) serializeForSearch() []interface{} {
+	if ql.Offset == DefaultOffset && ql.Num == DefaultLimit {
 		return nil
 	} else {
-		return []interface{}{"limit", ql.First, ql.Num}
+		return []interface{}{"limit", ql.Offset, ql.Num}
+	}
+}
+
+// Serialize the limit for output in an FT.AGGREGATE
+func (ql *limit) serializeForAggregate() []interface{} {
+	if ql.Offset == DefaultOffset && ql.Num == noLimit {
+		return nil
+	} else {
+		return []interface{}{"limit", ql.Offset, ql.Num}
 	}
 }
 
@@ -442,46 +492,46 @@ func (ql *queryLimit) serialize() []interface{} {
 Functions and structs used to set up summarization and highlighting.
 ********************************************************************/
 
-type querySummarize struct {
+type QuerySummarize struct {
 	Fields    []string
 	Frags     int32
 	Len       int32
 	Separator string
 }
 
-func DefaultQuerySummarize() *querySummarize {
-	return &querySummarize{
+func DefaultQuerySummarize() *QuerySummarize {
+	return &QuerySummarize{
 		Separator: defaultSumarizeSeparator,
 		Len:       defaultSummarizeLen,
 		Frags:     defaultSummarizeFrags,
 	}
 }
 
-func NewQuerySummarize() *querySummarize {
-	return &querySummarize{}
+func NewQuerySummarize() *QuerySummarize {
+	return &QuerySummarize{}
 }
 
-func NewQueryHighlight() *queryHighlight {
-	return &queryHighlight{}
+func NewQueryHighlight() *QueryHighlight {
+	return &QueryHighlight{}
 }
 
 // WithLen sets the length of the query summarization fragment (in words)
 // The modified struct is returned to support chaining
-func (s *querySummarize) WithLen(len int32) *querySummarize {
+func (s *QuerySummarize) WithLen(len int32) *QuerySummarize {
 	s.Len = len
 	return s
 }
 
 // WithFrags sets the number of the fragements to create and return
 // The modified struct is returned to support chaining
-func (s *querySummarize) WithFrags(n int32) *querySummarize {
+func (s *QuerySummarize) WithFrags(n int32) *QuerySummarize {
 	s.Frags = n
 	return s
 }
 
 // WithSeparator sets the fragment separator to be used.
 // The modified struct is returned to support chaining
-func (s *querySummarize) WithSeparator(sep string) *querySummarize {
+func (s *QuerySummarize) WithSeparator(sep string) *QuerySummarize {
 	s.Separator = sep
 	return s
 }
@@ -489,20 +539,20 @@ func (s *querySummarize) WithSeparator(sep string) *querySummarize {
 // WithFields sets the fields to be summarized. Leaving it empty
 // (the default) will cause all fields to be summarized
 // The modified struct is returned to support chaining
-func (s *querySummarize) WithFields(fields []string) *querySummarize {
+func (s *QuerySummarize) WithFields(fields []string) *QuerySummarize {
 	s.Fields = fields
 	return s
 }
 
 // AddField adds a new field to the list of those to be summarised.
 // The modified struct is returned to support chaining
-func (s *querySummarize) AddField(field string) *querySummarize {
+func (s *QuerySummarize) AddField(field string) *QuerySummarize {
 	s.Fields = append(s.Fields, field)
 	return s
 }
 
 // serialize prepares the summarisation to be passed to Redis.
-func (s *querySummarize) serialize() []interface{} {
+func (s *QuerySummarize) serialize() []interface{} {
 	args := []interface{}{"summarize"}
 	args = append(args, serializeCountedArgs("fields", false, s.Fields)...)
 	args = append(args, "frags", s.Frags)
@@ -511,8 +561,8 @@ func (s *querySummarize) serialize() []interface{} {
 	return args
 }
 
-// queryHighlight allows the user to define optional query highlighting
-type queryHighlight struct {
+// QueryHighlight allows the user to define optional query highlighting
+type QueryHighlight struct {
 	Fields   []string
 	OpenTag  string
 	CloseTag string
@@ -521,14 +571,14 @@ type queryHighlight struct {
 // WithFields sets the fields to be highlighting. Leaving it empty
 // (the default) will cause all fields to be highlighted
 // The modified struct is returned to support chaining
-func (h *queryHighlight) WithFields(fields []string) *queryHighlight {
+func (h *QueryHighlight) WithFields(fields []string) *QueryHighlight {
 	h.Fields = fields
 	return h
 }
 
 // AddField adds a new field to the list of those to be highlighted.
 // The modified struct is returned to support chaining
-func (h *queryHighlight) AddField(field string) *queryHighlight {
+func (h *QueryHighlight) AddField(field string) *QueryHighlight {
 	h.Fields = append(h.Fields, field)
 	return h
 }
@@ -536,14 +586,14 @@ func (h *queryHighlight) AddField(field string) *queryHighlight {
 // SetTags sets the start and end tags. Both must be non empty or
 // both empty. This is not enforced in this code to keep the API consistent
 // but will lead to a Redis error if not set correctly.
-func (h *queryHighlight) SetTags(open string, close string) *queryHighlight {
+func (h *QueryHighlight) SetTags(open string, close string) *QueryHighlight {
 	h.OpenTag = open
 	h.CloseTag = close
 	return h
 }
 
 // serialize prepares the highlighting to be passed to Redis.
-func (h *queryHighlight) serialize() []interface{} {
+func (h *QueryHighlight) serialize() []interface{} {
 	args := []interface{}{"HIGHLIGHT"}
 	args = append(args, serializeCountedArgs("fields", false, h.Fields)...)
 	if h.OpenTag != "" || h.CloseTag != "" {
@@ -553,18 +603,22 @@ func (h *queryHighlight) serialize() []interface{} {
 }
 
 /******************************************************************************
+* Parameters
+******************************************************************************/
+
+/******************************************************************************
 * Geofilters
 ******************************************************************************/
 
-// geoFilter represents a location and radius to be used in a search query
-type geoFilter struct {
+// GeoFilter represents a location and radius to be used in a search query
+type GeoFilter struct {
 	Attribute         string
 	Long, Lat, Radius float64
 	Units             string
 }
 
-func NewGeoFilter(Attribute string, Long, Lat, Radius float64, Units string) *geoFilter {
-	return &geoFilter{
+func NewGeoFilter(Attribute string, Long, Lat, Radius float64, Units string) *GeoFilter {
+	return &GeoFilter{
 		Attribute: Attribute,
 		Long:      Long,
 		Lat:       Lat,
@@ -573,7 +627,7 @@ func NewGeoFilter(Attribute string, Long, Lat, Radius float64, Units string) *ge
 	}
 }
 
-func (gf *geoFilter) serialize() []interface{} {
+func (gf *GeoFilter) serialize() []interface{} {
 	return []interface{}{"geofilter", gf.Attribute, gf.Long, gf.Lat, gf.Radius, gf.Units}
 }
 
