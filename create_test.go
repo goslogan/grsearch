@@ -1,7 +1,7 @@
-package ftsearch_test
+package grstack_test
 
 import (
-	"github.com/RedisLabs-Solution-Architects/go-redis-stack/ftsearch"
+	"github.com/RedisLabs-Solution-Architects/grstack"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -9,7 +9,7 @@ import (
 var _ = Describe("Create", func() {
 
 	It("can build the simplest index", func() {
-		createCmd := client.FTCreateIndex(ctx, "simple", ftsearch.NewIndexOptions().AddSchemaAttribute(ftsearch.TextAttribute{
+		createCmd := client.FTCreateIndex(ctx, "simple", grstack.NewIndexOptions().AddSchemaAttribute(grstack.TextAttribute{
 			Name:  "foo",
 			Alias: "bar",
 		}))
@@ -18,12 +18,12 @@ var _ = Describe("Create", func() {
 	})
 
 	It("can build a hash index with options", func() {
-		createCmd := client.FTCreateIndex(ctx, "withoptions", ftsearch.NewIndexOptions().
+		createCmd := client.FTCreateIndex(ctx, "withoptions", grstack.NewIndexOptions().
 			AddPrefix("account:").
 			WithMaxTextFields().
 			WithScore(0.5).
 			WithLanguage("spanish").
-			AddSchemaAttribute(ftsearch.TextAttribute{
+			AddSchemaAttribute(grstack.TextAttribute{
 				Name:  "foo",
 				Alias: "bar",
 			}))
@@ -32,12 +32,12 @@ var _ = Describe("Create", func() {
 	})
 
 	It("can build a hash index with multiple schema entries", func() {
-		createCmd := client.FTCreateIndex(ctx, "multiattrib", ftsearch.NewIndexOptions().
-			AddSchemaAttribute(ftsearch.TextAttribute{
+		createCmd := client.FTCreateIndex(ctx, "multiattrib", grstack.NewIndexOptions().
+			AddSchemaAttribute(grstack.TextAttribute{
 				Name:  "texttest",
 				Alias: "xxtext",
 			}).
-			AddSchemaAttribute(ftsearch.NumericAttribute{
+			AddSchemaAttribute(grstack.NumericAttribute{
 				Name:     "numtest",
 				Sortable: true,
 			}))
@@ -46,12 +46,12 @@ var _ = Describe("Create", func() {
 	})
 
 	It("can build a hash index with multiple schema entries and a different language", func() {
-		createCmd := client.FTCreateIndex(ctx, "language", ftsearch.NewIndexOptions().
-			AddSchemaAttribute(ftsearch.TextAttribute{
+		createCmd := client.FTCreateIndex(ctx, "language", grstack.NewIndexOptions().
+			AddSchemaAttribute(grstack.TextAttribute{
 				Name:  "texttest",
 				Alias: "xxtext",
 			}).
-			AddSchemaAttribute(ftsearch.NumericAttribute{
+			AddSchemaAttribute(grstack.NumericAttribute{
 				Name:     "numtest",
 				Sortable: true,
 			}).WithLanguage("german"))
@@ -60,7 +60,7 @@ var _ = Describe("Create", func() {
 	})
 
 	It("can build an index with a language field and score field", func() {
-		createCmd := client.FTCreateIndex(ctx, "langscore", ftsearch.NewIndexOptions().AddSchemaAttribute(ftsearch.TextAttribute{
+		createCmd := client.FTCreateIndex(ctx, "langscore", grstack.NewIndexOptions().AddSchemaAttribute(grstack.TextAttribute{
 			Name:  "foo",
 			Alias: "bar",
 		}).WithLanguageField("lng").WithScoreField("scr"))
@@ -69,7 +69,7 @@ var _ = Describe("Create", func() {
 	})
 
 	It("can build an index with NOFIELDS", func() {
-		createCmd := client.FTCreateIndex(ctx, "nofields", ftsearch.NewIndexOptions().AddSchemaAttribute(ftsearch.TextAttribute{
+		createCmd := client.FTCreateIndex(ctx, "nofields", grstack.NewIndexOptions().AddSchemaAttribute(grstack.TextAttribute{
 			Name:  "foo",
 			Alias: "bar",
 		}).WithNoFields())
@@ -78,7 +78,7 @@ var _ = Describe("Create", func() {
 	})
 
 	It("can build an index with NOHL", func() {
-		createCmd := client.FTCreateIndex(ctx, "nohl", ftsearch.NewIndexOptions().AddSchemaAttribute(ftsearch.TextAttribute{
+		createCmd := client.FTCreateIndex(ctx, "nohl", grstack.NewIndexOptions().AddSchemaAttribute(grstack.TextAttribute{
 			Name:  "foo",
 			Alias: "bar",
 		}).WithNoHighlight())
@@ -87,7 +87,7 @@ var _ = Describe("Create", func() {
 	})
 
 	It("can build an index with NOOFFSETS", func() {
-		createCmd := client.FTCreateIndex(ctx, "nooff", ftsearch.NewIndexOptions().AddSchemaAttribute(ftsearch.TextAttribute{
+		createCmd := client.FTCreateIndex(ctx, "nooff", grstack.NewIndexOptions().AddSchemaAttribute(grstack.TextAttribute{
 			Name:  "foo",
 			Alias: "bar",
 		}).WithNoOffsets())
@@ -96,7 +96,7 @@ var _ = Describe("Create", func() {
 	})
 
 	It("can build an index with NOFREQS", func() {
-		createCmd := client.FTCreateIndex(ctx, "nofr", ftsearch.NewIndexOptions().AddSchemaAttribute(ftsearch.TextAttribute{
+		createCmd := client.FTCreateIndex(ctx, "nofr", grstack.NewIndexOptions().AddSchemaAttribute(grstack.TextAttribute{
 			Name:  "foo",
 			Alias: "bar",
 		}).WithNoFreqs())

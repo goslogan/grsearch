@@ -1,7 +1,4 @@
 FT.AGGREGATE
-FT.ALIASADD
-FT.ALIASDEL
-FT.ALIASUPDATE
 FT.ALTER
 FT.CURSOR DEL
 FT.CURSOR READ
@@ -11,5 +8,9 @@ FT.INFO ** in progress **
 FT.PROFILE
 FT.SEARCH ** in progress **
 FT.SPELLCHECK
-FT.SYNDUMP
-FT.SYNUPDATE
+
+
+
+Add tests for querying with
+    geofilter
+    return fields
