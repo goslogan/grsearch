@@ -16,7 +16,7 @@ type QueryOptions struct {
 	SortKeys     bool // WITHSORTKEYS but we need that for the API name
 	InOrder      bool
 	ExplainScore bool
-	Limit        *limit
+	Limit        *Limit
 	Return       []QueryReturn
 	Filters      []QueryFilter
 	InKeys       []string
@@ -260,15 +260,27 @@ func (q *QueryOptions) WithoutGeoFilter() *QueryOptions {
 	return q
 }
 
-// WithParam sets the value of a query parameter.
-func (q *QueryOptions) WithParam(name string, value interface{}) *QueryOptions {
+// AddParam sets the value of a query parameter.
+func (q *QueryOptions) AddParam(name string, value interface{}) *QueryOptions {
 	q.Params[name] = value
 	return q
 }
 
-// WithoutParam removes a parameter from search options
-func (q *QueryOptions) WithoutParam(name string) *QueryOptions {
+// RemoveParam removes a parameter from search options
+func (q *QueryOptions) RemoveParam(name string) *QueryOptions {
 	delete(q.Params, name)
+	return q
+}
+
+// ClearParams clears all the current set parameters
+func (q *QueryOptions) ClearParams() *QueryOptions {
+	q.Params = make(map[string]interface{}, 0)
+	return q
+}
+
+// WithParams sets the current set parameters
+func (q *QueryOptions) WithParams() *QueryOptions {
+	q.Params = make(map[string]interface{}, 0)
 	return q
 }
 
@@ -448,30 +460,30 @@ func (q QueryFilter) serialize() []interface{} {
 ******************************************************************************/
 
 // queryLimit defines the results by offset and number.
-type limit struct {
+type Limit struct {
 	Offset int64
 	Num    int64
 }
 
 // NewQueryLimit returns an initialized limit struct
-func NewLimit(first int64, num int64) *limit {
-	return &limit{Offset: first, Num: num}
+func NewLimit(first int64, num int64) *Limit {
+	return &Limit{Offset: first, Num: num}
 }
 
 // DefaultQueryLimit returns an initialzied limit struct with the
 // default limit range for use in FT.SEARCH
-func DefaultQueryLimit() *limit {
+func DefaultQueryLimit() *Limit {
 	return NewLimit(DefaultOffset, DefaultLimit)
 }
 
 // DefaultAggregateLimit returns an blank limit struct for use
 // in FT.AGGREGATE
-func DefaultAggregateLimit() *limit {
+func DefaultAggregateLimit() *Limit {
 	return NewLimit(DefaultOffset, noLimit)
 }
 
 // Serialize the limit for output in an FT.SEARCH
-func (ql *limit) serializeForSearch() []interface{} {
+func (ql *Limit) serializeForSearch() []interface{} {
 	if ql.Offset == DefaultOffset && ql.Num == DefaultLimit {
 		return nil
 	} else {
@@ -480,7 +492,7 @@ func (ql *limit) serializeForSearch() []interface{} {
 }
 
 // Serialize the limit for output in an FT.AGGREGATE
-func (ql *limit) serializeForAggregate() []interface{} {
+func (ql *Limit) serializeForAggregate() []interface{} {
 	if ql.Offset == DefaultOffset && ql.Num == noLimit {
 		return nil
 	} else {
