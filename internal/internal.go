@@ -1,9 +1,9 @@
-package ftsearch
+package internal
 
 // serializeCountedArgs is used to serialize a string array to
 // NAME <count> values. If incZero is true then NAME 0 will be generated
 // otherwise empty results will not be generated.
-func serializeCountedArgs(name string, incZero bool, args []string) []interface{} {
+func SerializeCountedArgs(name string, incZero bool, args []string) []interface{} {
 	if len(args) > 0 || incZero {
 		result := make([]interface{}, 2+len(args))
 

@@ -1,4 +1,4 @@
-package ftsearch
+package grstack
 
 /****
 * data structures for the FT.info command

@@ -1,10 +1,12 @@
 // query provides an interface to RedisSearch's query functionality.
-package ftsearch
+package grstack
 
 import (
 	"fmt"
 	"math"
 	"time"
+
+	"github.com/RedisLabs-Solution-Architects/grstack/internal"
 )
 
 type QueryOptions struct {
@@ -314,8 +316,8 @@ func (q *QueryOptions) serialize() []interface{} {
 	args = q.appendFlagArg(args, q.InOrder, "inorder")
 	args = q.appendStringArg(args, "language", q.Language)
 
-	args = append(args, serializeCountedArgs("inkeys", false, q.InKeys)...)
-	args = append(args, serializeCountedArgs("infields", false, q.InFields)...)
+	args = append(args, internal.SerializeCountedArgs("inkeys", false, q.InKeys)...)
+	args = append(args, internal.SerializeCountedArgs("infields", false, q.InFields)...)
 
 	args = q.appendFlagArg(args, q.ExplainScore && q.Scores, "EXPLAINSCORE")
 
@@ -566,7 +568,7 @@ func (s *QuerySummarize) AddField(field string) *QuerySummarize {
 // serialize prepares the summarisation to be passed to Redis.
 func (s *QuerySummarize) serialize() []interface{} {
 	args := []interface{}{"summarize"}
-	args = append(args, serializeCountedArgs("fields", false, s.Fields)...)
+	args = append(args, internal.SerializeCountedArgs("fields", false, s.Fields)...)
 	args = append(args, "frags", s.Frags)
 	args = append(args, "len", s.Len)
 	args = append(args, "separator", s.Separator)
@@ -607,7 +609,7 @@ func (h *QueryHighlight) SetTags(open string, close string) *QueryHighlight {
 // serialize prepares the highlighting to be passed to Redis.
 func (h *QueryHighlight) serialize() []interface{} {
 	args := []interface{}{"HIGHLIGHT"}
-	args = append(args, serializeCountedArgs("fields", false, h.Fields)...)
+	args = append(args, internal.SerializeCountedArgs("fields", false, h.Fields)...)
 	if h.OpenTag != "" || h.CloseTag != "" {
 		args = append(args, "tags", h.OpenTag, h.CloseTag)
 	}

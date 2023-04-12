@@ -1,4 +1,4 @@
-package ftsearch
+package grstack
 
 /*******************************************************************************
 *   GROUP BY related methods												   *

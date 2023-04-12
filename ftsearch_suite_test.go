@@ -1,4 +1,4 @@
-package ftsearch_test
+package grstack_test
 
 import (
 	"context"
@@ -7,13 +7,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RedisLabs-Solution-Architects/go-redis-stack/ftsearch"
+	"github.com/RedisLabs-Solution-Architects/grstack"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/redis/go-redis/v9"
 )
 
-var client *ftsearch.Client
+var client *grstack.Client
 var ctx = context.Background()
 
 var testData = [][]string{
@@ -441,35 +441,35 @@ func createTestData() {
 			"summary", val["summary"]).Err()).NotTo(HaveOccurred())
 	}
 
-	Expect(client.FTCreateIndex(ctx, "customers", ftsearch.NewIndexOptions().
+	Expect(client.FTCreateIndex(ctx, "customers", grstack.NewIndexOptions().
 		AddPrefix("account:").
-		AddSchemaAttribute(ftsearch.TagAttribute{
+		AddSchemaAttribute(grstack.TagAttribute{
 			Name:     "account_id",
 			Alias:    "id",
-			Sortable: true}).AddSchemaAttribute(ftsearch.TextAttribute{
+			Sortable: true}).AddSchemaAttribute(grstack.TextAttribute{
 		Name:     "customer",
-		Sortable: true}).AddSchemaAttribute(ftsearch.TextAttribute{
+		Sortable: true}).AddSchemaAttribute(grstack.TextAttribute{
 		Name:     "email",
-		Sortable: true}).AddSchemaAttribute(ftsearch.TagAttribute{
+		Sortable: true}).AddSchemaAttribute(grstack.TagAttribute{
 		Name:     "account_owner",
 		Alias:    "owner",
-		Sortable: true}).AddSchemaAttribute(ftsearch.NumericAttribute{
+		Sortable: true}).AddSchemaAttribute(grstack.NumericAttribute{
 		Name:     "balance",
 		Sortable: true,
 	})).Err()).NotTo(HaveOccurred())
 
-	Expect(client.FTCreateIndex(ctx, "docs", ftsearch.NewIndexOptions().
+	Expect(client.FTCreateIndex(ctx, "docs", grstack.NewIndexOptions().
 		AddPrefix("command:").
-		AddSchemaAttribute(ftsearch.TagAttribute{
+		AddSchemaAttribute(grstack.TagAttribute{
 			Name:     "group",
-			Sortable: true}).AddSchemaAttribute(ftsearch.TextAttribute{
+			Sortable: true}).AddSchemaAttribute(grstack.TextAttribute{
 		Name:     "command",
 		Sortable: true})).Err()).NotTo(HaveOccurred())
 
 }
 
 var _ = BeforeSuite(func() {
-	client = ftsearch.NewClient(&redis.Options{})
+	client = grstack.NewClient(&redis.Options{})
 	Expect(client.Ping(ctx).Err()).NotTo(HaveOccurred())
 	Expect(client.FlushAll(ctx).Err()).NotTo(HaveOccurred())
 	createTestData()

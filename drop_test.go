@@ -1,4 +1,4 @@
-package ftsearch_test
+package grstack_test
 
 import (
 	"fmt"
@@ -6,14 +6,14 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/RedisLabs-Solution-Architects/go-redis-stack/ftsearch"
+	"github.com/RedisLabs-Solution-Architects/grstack"
 )
 
 var _ = Describe("Drop", func() {
 
 	BeforeEach(func() {
 		// Requires redis on localhost:6379 with search module!
-		Expect(client.FTCreateIndex(ctx, "drop_test", ftsearch.NewIndexOptions().AddSchemaAttribute(ftsearch.TextAttribute{
+		Expect(client.FTCreateIndex(ctx, "drop_test", grstack.NewIndexOptions().AddSchemaAttribute(grstack.TextAttribute{
 			Name:  "foo",
 			Alias: "bar",
 		})).Err()).NotTo(HaveOccurred())

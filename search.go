@@ -1,5 +1,5 @@
-// ftsearch main module - defines the client class
-package ftsearch
+// grstack main module - defines the client class
+package grstack
 
 import (
 	"context"

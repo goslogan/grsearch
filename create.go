@@ -1,5 +1,7 @@
 // implements the functions and data structures required to implement FT.CREATE
-package ftsearch
+package grstack
+
+import "github.com/RedisLabs-Solution-Architects/grstack/internal"
 
 // SearchIndex defines an index to be created with FT.CREATE
 type IndexOptions struct {
@@ -202,7 +204,7 @@ func (i *IndexOptions) WithNoStopWords() *IndexOptions {
 func (i *IndexOptions) serialize() []interface{} {
 
 	args := []interface{}{"on", i.On}
-	args = append(args, serializeCountedArgs("prefix", false, i.Prefixes)...)
+	args = append(args, internal.SerializeCountedArgs("prefix", false, i.Prefixes)...)
 
 	if i.Filter != "" {
 		args = append(args, "filter", i.Filter)
@@ -247,7 +249,7 @@ func (i *IndexOptions) serialize() []interface{} {
 	}
 
 	if i.UseStopWords {
-		args = append(args, serializeCountedArgs("stopwords", true, i.StopWords)...)
+		args = append(args, internal.SerializeCountedArgs("stopwords", true, i.StopWords)...)
 	}
 
 	if i.SkipInitialscan {

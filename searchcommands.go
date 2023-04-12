@@ -1,4 +1,4 @@
-package ftsearch
+package grstack
 
 import (
 	"context"
