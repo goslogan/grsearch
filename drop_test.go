@@ -30,9 +30,11 @@ var _ = Describe("Drop", func() {
 	})
 
 	It("can drop an index but keep the docs", func() {
-		Expect(client.DBSize(ctx).Val()).To(Equal(int64(392)))
+		cmd := client.DBSize(ctx)
+		Expect(cmd.Err()).NotTo(HaveOccurred())
+		size := cmd.Val()
 		Expect(client.FTDropIndex(ctx, "drop_test", false).Err()).NotTo(HaveOccurred())
-		Expect(client.DBSize(ctx).Val()).To(Equal(int64(392)))
+		Expect(client.DBSize(ctx).Val()).To(Equal(size))
 	})
 
 	/* It("can drop an index and remove the docs", func() {

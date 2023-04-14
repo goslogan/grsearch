@@ -2,6 +2,7 @@ package grstack
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"reflect"
 
@@ -94,7 +95,7 @@ func (cmd *QueryCmd) toMap(input []interface{}) map[string]string {
 	return results
 }
 
-func (cmd *QueryCmd) parseResult() error {
+func (cmd *QueryCmd) postProcess() error {
 	if cmd.Err() != nil {
 		return cmd.Err()
 	}
@@ -155,7 +156,7 @@ func NewConfigGetCmd(ctx context.Context, args ...interface{}) *ConfigGetCmd {
 	}
 }
 
-func (c *ConfigGetCmd) parseResult() {
+func (c *ConfigGetCmd) postProcess() error {
 	if result, err := c.Slice(); err == nil {
 		configs := make(map[string]string, len(result))
 		for _, cfg := range result {
@@ -172,6 +173,7 @@ func (c *ConfigGetCmd) parseResult() {
 		}
 		c.SetVal(configs)
 	}
+	return nil
 }
 
 func (cmd *ConfigGetCmd) SetVal(val map[string]string) {
@@ -203,7 +205,7 @@ func NewSynonymDumpCmd(ctx context.Context, args ...interface{}) *SynonymDumpCmd
 	}
 }
 
-func (c *SynonymDumpCmd) parseResult() {
+func (c *SynonymDumpCmd) postProcess() error {
 	if result, err := c.Slice(); err == nil {
 		synonymMap := make(map[string][]string)
 		for n := 0; n < len(result); n += 2 {
@@ -217,6 +219,7 @@ func (c *SynonymDumpCmd) parseResult() {
 		}
 		c.SetVal(synonymMap)
 	}
+	return nil
 }
 
 func (cmd *SynonymDumpCmd) SetVal(val map[string][]string) {
@@ -247,20 +250,72 @@ func NewInfoCmd(ctx context.Context, args ...interface{}) *InfoCmd {
 	}
 }
 
-func (c *InfoCmd) parseResult() {
+func (c *InfoCmd) postProcess() error {
+	return nil
 }
 
 /*******************************************************************************
 *
-* Wrappers
+* JSONCmd
 *
 *******************************************************************************/
 
-type SearchAdaptor struct{}
+type JSONCmd struct {
+	redis.StringCmd
+	val []interface{}
+}
 
-func (sa *SearchAdaptor) PostProcess() {}
+func NewJSONCmd(ctx context.Context, args ...interface{}) *JSONCmd {
+	return &JSONCmd{
+		StringCmd: *redis.NewStringCmd(ctx, args...),
+	}
+}
 
-type SearchBoolCmd struct {
-	redis.BoolCmd
-	SearchAdaptor
+// given a string containing a JSON array, turn it into
+// an array of json.RawMessage objects
+func (c *JSONCmd) postProcess() error {
+	objects := []interface{}{}
+	if err := json.Unmarshal([]byte(c.StringCmd.Val()), &objects); err == nil {
+		c.val = objects
+		return nil
+	} else {
+		c.SetErr(err)
+		return err
+	}
+}
+
+func (cmd *JSONCmd) SetVal(val []interface{}) {
+	cmd.val = val
+}
+
+func (cmd *JSONCmd) Val() []interface{} {
+	return cmd.val
+}
+
+func (cmd *JSONCmd) Result() ([]interface{}, error) {
+	return cmd.Val(), cmd.Err()
+}
+
+// Scan scans the result at position index in the results into the
+// destination.
+func (cmd *JSONCmd) Scan(index int, dst interface{}) error {
+	if cmd.Err() != nil {
+		return cmd.Err()
+	}
+
+	if index < 0 || index >= len(cmd.val) {
+		return fmt.Errorf("JSONCmd.Scan - %d is out of range (0..%d)", index, len(cmd.val))
+	}
+
+	results := []json.RawMessage{}
+	if err := json.Unmarshal([]byte(cmd.StringCmd.Val()), &results); err != nil {
+		return err
+	} else {
+		return json.Unmarshal(results[index], dst)
+	}
+}
+
+type ExtCmder interface {
+	redis.Cmder
+	postProcess() error
 }
