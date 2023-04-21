@@ -251,7 +251,7 @@ var _ = Describe("JSON Array Popping", func() {
 		Expect(cmd3.Val()[0]).To(BeAssignableToTypeOf([]interface{}{1}))
 		Expect(cmd3.Val()[0]).To(Equal([]interface{}{float64(100), float64(300), float64(200)}))
 
-		cmd3 = client.JSONGet(ctx, "testdocp5", "$.b.a")
+		cmd3 = client.JSONGet(ctx, "pop5", "$.b.a")
 		Expect(cmd3.Err()).NotTo(HaveOccurred())
 		Expect(cmd3.Val()).To(HaveLen(1))
 		Expect(cmd3.Val()[0]).To(BeAssignableToTypeOf([]interface{}{1}))
@@ -264,10 +264,89 @@ var _ = Describe("JSON Array Popping", func() {
 var _ = Describe("JSON Array Trimming", func() {
 
 	It("can trim a simple array by one element", func() {
-		cmd1 := client.JSONSet(ctx, "testdocp5", "$", `{"a": [100, 200, 300, 200], "b": {"a": [100, 200, 300, 200]}}`)
+		cmd1 := client.JSONSet(ctx, "trim1", "$", `[100, 200, 300, 200]`)
 		Expect(cmd1.Err()).NotTo(HaveOccurred())
 		Expect(cmd1.Val()).To(Equal("OK"))
 
+		cmd2 := client.JSONArrTrim(ctx, "trim1", "$", 0, 2)
+		Expect(cmd2.Err()).NotTo(HaveOccurred())
+		Expect(cmd2.Val()).To(Equal([]int64{3}))
+
+		cmd3 := client.JSONGet(ctx, "trim1", "$")
+		Expect(cmd3.Err()).NotTo(HaveOccurred())
+		Expect(cmd3.Val()).To(HaveLen(1))
+		Expect(cmd3.Val()[0]).To(BeAssignableToTypeOf([]interface{}{1}))
+		Expect(cmd3.Val()[0]).To(Equal([]interface{}{float64(100), float64(200), float64(300)}))
+	})
+
+	It("can trim multiple values from the start of an array", func() {
+		cmd1 := client.JSONSet(ctx, "trim2", "$", `[100, 200, 300, 200]`)
+		Expect(cmd1.Err()).NotTo(HaveOccurred())
+		Expect(cmd1.Val()).To(Equal("OK"))
+
+		cmd2 := client.JSONArrTrim(ctx, "trim2", "$", 2, 3)
+		Expect(cmd2.Err()).NotTo(HaveOccurred())
+		Expect(cmd2.Val()).To(Equal([]int64{2}))
+
+		cmd3 := client.JSONGet(ctx, "trim2", "$")
+		Expect(cmd3.Err()).NotTo(HaveOccurred())
+		Expect(cmd3.Val()).To(HaveLen(1))
+		Expect(cmd3.Val()[0]).To(BeAssignableToTypeOf([]interface{}{1}))
+		Expect(cmd3.Val()[0]).To(Equal([]interface{}{float64(300), float64(200)}))
+	})
+
+	It("can trim multiple values from the end of an array", func() {
+		cmd1 := client.JSONSet(ctx, "trim3", "$", `[100, 200, 300, 200]`)
+		Expect(cmd1.Err()).NotTo(HaveOccurred())
+		Expect(cmd1.Val()).To(Equal("OK"))
+
+		cmd2 := client.JSONArrTrim(ctx, "trim3", "$", 2, 3)
+		Expect(cmd2.Err()).NotTo(HaveOccurred())
+		Expect(cmd2.Val()).To(Equal([]int64{2}))
+
+		cmd3 := client.JSONGet(ctx, "trim3", "$")
+		Expect(cmd3.Err()).NotTo(HaveOccurred())
+		Expect(cmd3.Val()).To(HaveLen(1))
+		Expect(cmd3.Val()[0]).To(BeAssignableToTypeOf([]interface{}{1}))
+		Expect(cmd3.Val()[0]).To(Equal([]interface{}{float64(300), float64(200)}))
+	})
+
+	It("can trim in the middle of an array", func() {
+		cmd1 := client.JSONSet(ctx, "trim4", "$", `[100, 200, 300, 200]`)
+		Expect(cmd1.Err()).NotTo(HaveOccurred())
+		Expect(cmd1.Val()).To(Equal("OK"))
+
+		cmd2 := client.JSONArrTrim(ctx, "trim4", "$", 1, 2)
+		Expect(cmd2.Err()).NotTo(HaveOccurred())
+		Expect(cmd2.Val()).To(Equal([]int64{2}))
+
+		cmd3 := client.JSONGet(ctx, "trim4", "$")
+		Expect(cmd3.Err()).NotTo(HaveOccurred())
+		Expect(cmd3.Val()).To(HaveLen(1))
+		Expect(cmd3.Val()[0]).To(BeAssignableToTypeOf([]interface{}{1}))
+		Expect(cmd3.Val()[0]).To(Equal([]interface{}{float64(200), float64(300)}))
+	})
+
+	It("can trim when multiple paths match", func() {
+		cmd1 := client.JSONSet(ctx, "trim5", "$", `{"a": [100, 200, 300, 200], "b": {"a": [100, 200, 300, 200]}}`)
+		Expect(cmd1.Err()).NotTo(HaveOccurred())
+		Expect(cmd1.Val()).To(Equal("OK"))
+
+		cmd2 := client.JSONArrTrim(ctx, "trim5", "$..a", 1, 2)
+		Expect(cmd2.Err()).NotTo(HaveOccurred())
+		Expect(cmd2.Val()).To(Equal([]int64{2, 2}))
+
+		cmd3 := client.JSONGet(ctx, "trim5", "$.a")
+		Expect(cmd3.Err()).NotTo(HaveOccurred())
+		Expect(cmd3.Val()).To(HaveLen(1))
+		Expect(cmd3.Val()[0]).To(BeAssignableToTypeOf([]interface{}{1}))
+		Expect(cmd3.Val()[0]).To(Equal([]interface{}{float64(200), float64(300)}))
+
+		cmd3 = client.JSONGet(ctx, "trim5", "$.b.a")
+		Expect(cmd3.Err()).NotTo(HaveOccurred())
+		Expect(cmd3.Val()).To(HaveLen(1))
+		Expect(cmd3.Val()[0]).To(BeAssignableToTypeOf([]interface{}{1}))
+		Expect(cmd3.Val()[0]).To(Equal([]interface{}{float64(200), float64(300)}))
 	})
 
 })

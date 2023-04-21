@@ -60,8 +60,16 @@ func (c cmdable) JSONArrPop(ctx context.Context, key, path string, index int) *r
 
 // JSONArrTrim trims an array so that it contains only the specified inclusive range of elements
 func (c cmdable) JSONArrTrim(ctx context.Context, key, path string, start, stop int) *redis.IntSliceCmd {
-	args := []interface{}{"jspn.arrtrim", key, path, start, stop}
+	args := []interface{}{"json.arrtrim", key, path, start, stop}
 	cmd := redis.NewIntSliceCmd(ctx, args...)
+	_ = c(ctx, cmd)
+	return cmd
+}
+
+// JSONClear clears container values (arrays/objects) and set numeric values to 0
+func (c cmdable) JSONClear(ctx context.Context, key, path string) *redis.IntCmd {
+	args := []interface{}{"json.clear", key, path}
+	cmd := redis.NewIntCmd(ctx, args...)
 	_ = c(ctx, cmd)
 	return cmd
 }
