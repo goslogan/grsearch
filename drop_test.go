@@ -3,10 +3,9 @@ package grstack_test
 import (
 	"fmt"
 
+	"github.com/RedisLabs-Solution-Architects/grstack"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	"github.com/RedisLabs-Solution-Architects/grstack"
 )
 
 var _ = Describe("Drop", func() {

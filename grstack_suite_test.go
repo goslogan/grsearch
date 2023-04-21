@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/RedisLabs-Solution-Architects/grstack"
+	grstack "github.com/goslogan/redis-stack"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/redis/go-redis/v9"

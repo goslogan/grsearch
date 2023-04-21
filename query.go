@@ -6,7 +6,7 @@ import (
 	"math"
 	"time"
 
-	"github.com/RedisLabs-Solution-Architects/grstack/internal"
+	"github.com/goslogan/redis-stack/internal"
 )
 
 type QueryOptions struct {

@@ -1,4 +1,4 @@
-module github.com/RedisLabs-Solution-Architects/grstack
+module github.com/goslogan/redis-stack
 
 go 1.18
 
