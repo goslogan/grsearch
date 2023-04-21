@@ -33,6 +33,39 @@ func (c cmdable) JSONArrIndexStartStop(ctx context.Context, key, path string, va
 	return cmd
 }
 
+// JSONArrInsert inserts the json values into the array at path before the index (shifts to the right)
+func (c cmdable) JSONArrInsert(ctx context.Context, key, path string, index int64, values ...interface{}) *redis.IntSliceCmd {
+	args := []interface{}{"json.arrinsert", key, path, index}
+	args = append(args, values...)
+	cmd := redis.NewIntSliceCmd(ctx, args...)
+	_ = c(ctx, cmd)
+	return cmd
+}
+
+// JSONArrLen reports the length of the JSON array at path in key
+func (c cmdable) JSONArrLen(ctx context.Context, key, path string) *redis.IntSliceCmd {
+	args := []interface{}{"json.arrlen", key, path}
+	cmd := redis.NewIntSliceCmd(ctx, args...)
+	_ = c(ctx, cmd)
+	return cmd
+}
+
+// JSONArrPop removes and returns an element from the index in the array
+func (c cmdable) JSONArrPop(ctx context.Context, key, path string, index int) *redis.StringSliceCmd {
+	args := []interface{}{"json.arrpop", key, path, index}
+	cmd := redis.NewStringSliceCmd(ctx, args...)
+	_ = c(ctx, cmd)
+	return cmd
+}
+
+// JSONArrTrim trims an array so that it contains only the specified inclusive range of elements
+func (c cmdable) JSONArrTrim(ctx context.Context, key, path string, start, stop int) *redis.IntSliceCmd {
+	args := []interface{}{"jspn.arrtrim", key, path, start, stop}
+	cmd := redis.NewIntSliceCmd(ctx, args...)
+	_ = c(ctx, cmd)
+	return cmd
+}
+
 // JSONGet retrieves content from the database.
 func (c cmdable) JSONGet(ctx context.Context, key string, paths ...string) *JSONCmd {
 
