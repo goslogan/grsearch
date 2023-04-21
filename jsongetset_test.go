@@ -9,7 +9,7 @@ type TestResult struct {
 	Hello string `json:"hello"`
 }
 
-var _ = Describe("JSON Set", func() {
+var _ = Describe("JSON Set", Label("getset", "json.set"), func() {
 	It("can add a new document", func() {
 		cmd := client.JSONSet(ctx, "testdoc1", "$", `{"a": 1, "b": 2, "hello": "world"}`)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
@@ -28,7 +28,7 @@ var _ = Describe("JSON Set", func() {
 	})
 })
 
-var _ = Describe("JSON Get", func() {
+var _ = Describe("JSON Get", Label("getset", "json.get"), func() {
 	It("can retrieve a single result from a document", func() {
 		cmd1 := client.JSONSet(ctx, "testdoc3", "$", `{"a": 1, "b": 2, "hello": "world"}`)
 		Expect(cmd1.Err()).NotTo(HaveOccurred())

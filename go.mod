@@ -1,4 +1,4 @@
-module github.com/goslogan/redis-stack
+module github.com/goslogan/grstack
 
 go 1.18
 

@@ -1,7 +1,7 @@
 // implements the functions and data structures required to implement FT.CREATE
 package grstack
 
-import "github.com/goslogan/redis-stack/internal"
+import "github.com/goslogan/grstack/internal"
 
 // SearchIndex defines an index to be created with FT.CREATE
 type IndexOptions struct {

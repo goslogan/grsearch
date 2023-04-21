@@ -3,7 +3,7 @@ package grstack_test
 import (
 	"fmt"
 
-	"github.com/RedisLabs-Solution-Architects/grstack"
+	"github.com/goslogan/grstack"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

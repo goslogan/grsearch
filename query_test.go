@@ -3,7 +3,7 @@ package grstack_test
 import (
 	"math"
 
-	grstack "github.com/goslogan/redis-stack"
+	grstack "github.com/goslogan/grstack"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

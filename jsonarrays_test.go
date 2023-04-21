@@ -5,7 +5,8 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("JSON Array Append", func() {
+var _ = Describe("JSON Array Append", Label("arrays", "json.arrappend"), func() {
+
 	It("can append a single value to a simple array", func() {
 		cmd1 := client.JSONSet(ctx, "append1", "$", `[]`)
 		Expect(cmd1.Err()).NotTo(HaveOccurred())
@@ -28,7 +29,7 @@ var _ = Describe("JSON Array Append", func() {
 
 })
 
-var _ = Describe("JSON Array Index", func() {
+var _ = Describe("JSON Array Index", Label("arrays", "json.arrindex"), func() {
 	It("can get the single index of a value", func() {
 		cmd1 := client.JSONSet(ctx, "index1", "$", `[100, 200, 300, 200]`)
 		Expect(cmd1.Err()).NotTo(HaveOccurred())
@@ -71,7 +72,7 @@ var _ = Describe("JSON Array Index", func() {
 
 })
 
-var _ = Describe("JSON Array Insert", func() {
+var _ = Describe("JSON Array Insert", Label("arrays", "json.arrinsert"), func() {
 	It("can insert a single value", func() {
 		cmd1 := client.JSONSet(ctx, "insert1", "$", `[100, 200, 300, 200]`)
 		Expect(cmd1.Err()).NotTo(HaveOccurred())
@@ -135,7 +136,7 @@ var _ = Describe("JSON Array Insert", func() {
 
 })
 
-var _ = Describe("JSON Array Lengths", func() {
+var _ = Describe("JSON Array Lengths", Label("arrays", "json.arrlen"), func() {
 	It("can get the length of a single array", func() {
 		cmd1 := client.JSONSet(ctx, "length1", "$", `[100, 200, 300, 200]`)
 		Expect(cmd1.Err()).NotTo(HaveOccurred())
@@ -169,7 +170,7 @@ var _ = Describe("JSON Array Lengths", func() {
 
 })
 
-var _ = Describe("JSON Array Popping", func() {
+var _ = Describe("JSON Array Popping", Label("arrays", "json.arrpop"), func() {
 	It("remove one item from the end of an array", func() {
 		cmd1 := client.JSONSet(ctx, "pop1", "$", `[100, 200, 300, 200]`)
 		Expect(cmd1.Err()).NotTo(HaveOccurred())
@@ -261,7 +262,7 @@ var _ = Describe("JSON Array Popping", func() {
 
 })
 
-var _ = Describe("JSON Array Trimming", func() {
+var _ = Describe("JSON Array Trimming", Label("arrays", "json.arrtrim"), func() {
 
 	It("can trim a simple array by one element", func() {
 		cmd1 := client.JSONSet(ctx, "trim1", "$", `[100, 200, 300, 200]`)
