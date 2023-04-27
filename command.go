@@ -256,24 +256,32 @@ func (c *InfoCmd) postProcess() error {
 
 /*******************************************************************************
 *
-* JSONCmd
+* JSONStringCmd
 *
 *******************************************************************************/
 
-type JSONCmd struct {
+type JSONStringCmd struct {
 	redis.StringCmd
 	val []interface{}
 }
 
-func NewJSONCmd(ctx context.Context, args ...interface{}) *JSONCmd {
-	return &JSONCmd{
+func NewJSONStringCmd(ctx context.Context, args ...interface{}) *JSONStringCmd {
+	return &JSONStringCmd{
 		StringCmd: *redis.NewStringCmd(ctx, args...),
 	}
 }
 
 // given a string containing a JSON array, turn it into
 // an array of json.RawMessage objects
-func (c *JSONCmd) postProcess() error {
+func (c *JSONStringCmd) postProcess() error {
+
+	// nil response from JSON.(M)GET (c.StringCmd.err will be "redis: nil")
+	if c.StringCmd.Val() == "" && c.StringCmd.Err().Error() == redis.Nil.Error() {
+		c.val = nil
+		c.SetErr(nil)
+		return nil
+	}
+
 	objects := []interface{}{}
 	if err := json.Unmarshal([]byte(c.StringCmd.Val()), &objects); err == nil {
 		c.val = objects
@@ -284,21 +292,21 @@ func (c *JSONCmd) postProcess() error {
 	}
 }
 
-func (cmd *JSONCmd) SetVal(val []interface{}) {
+func (cmd *JSONStringCmd) SetVal(val []interface{}) {
 	cmd.val = val
 }
 
-func (cmd *JSONCmd) Val() []interface{} {
+func (cmd *JSONStringCmd) Val() []interface{} {
 	return cmd.val
 }
 
-func (cmd *JSONCmd) Result() ([]interface{}, error) {
+func (cmd *JSONStringCmd) Result() ([]interface{}, error) {
 	return cmd.Val(), cmd.Err()
 }
 
 // Scan scans the result at position index in the results into the
 // destination.
-func (cmd *JSONCmd) Scan(index int, dst interface{}) error {
+func (cmd *JSONStringCmd) Scan(index int, dst interface{}) error {
 	if cmd.Err() != nil {
 		return cmd.Err()
 	}
@@ -313,6 +321,67 @@ func (cmd *JSONCmd) Scan(index int, dst interface{}) error {
 	} else {
 		return json.Unmarshal(results[index], dst)
 	}
+}
+
+/*******************************************************************************
+*
+* JSONStringSliceCmd
+*
+*******************************************************************************/
+
+// TODO: think of a way to implement Scan for this.
+type JSONStringSliceCmd struct {
+	redis.StringSliceCmd
+	val [][]interface{}
+}
+
+func NewJSONStringSliceCmd(ctx context.Context, args ...interface{}) *JSONStringSliceCmd {
+	return &JSONStringSliceCmd{
+		StringSliceCmd: *redis.NewStringSliceCmd(ctx, args...),
+	}
+}
+
+// postProcess converts an array of bulk string responses into
+// an array of arrays of interfaces.
+// an array of json.RawMessage objects
+func (c *JSONStringSliceCmd) postProcess() error {
+
+	// nil response from JSON.(M)GET (c.StringCmd.err will be "redis: nil")
+	if len(c.StringSliceCmd.Val()) == 0 && c.StringSliceCmd.Err().Error() == redis.Nil.Error() {
+		c.val = nil
+		c.SetErr(nil)
+		return nil
+	}
+
+	results := [][]interface{}{}
+
+	for _, val := range c.StringSliceCmd.Val() {
+		objects := []interface{}{}
+		if val == "" {
+			results = append(results, nil)
+		} else {
+			if err := json.Unmarshal([]byte(val), &objects); err != nil {
+				c.SetErr(err)
+				return err
+			}
+			results = append(results, objects)
+		}
+	}
+
+	c.SetVal(results)
+	return nil
+}
+
+func (cmd *JSONStringSliceCmd) SetVal(val [][]interface{}) {
+	cmd.val = val
+}
+
+func (cmd *JSONStringSliceCmd) Val() [][]interface{} {
+	return cmd.val
+}
+
+func (cmd *JSONStringSliceCmd) Result() ([][]interface{}, error) {
+	return cmd.Val(), cmd.Err()
 }
 
 type ExtCmder interface {

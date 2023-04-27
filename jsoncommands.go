@@ -74,8 +74,24 @@ func (c cmdable) JSONClear(ctx context.Context, key, path string) *redis.IntCmd 
 	return cmd
 }
 
-// JSONGet retrieves content from the database.
-func (c cmdable) JSONGet(ctx context.Context, key string, paths ...string) *JSONCmd {
+// JSONDel deletes a value
+func (c cmdable) JSONDel(ctx context.Context, key, path string) *redis.IntCmd {
+	args := []interface{}{"json.del", key, path}
+	cmd := redis.NewIntCmd(ctx, args...)
+	_ = c(ctx, cmd)
+	return cmd
+}
+
+// JSONForget deletes a value
+func (c cmdable) JSONForget(ctx context.Context, key, path string) *redis.IntCmd {
+	args := []interface{}{"json.forget", key, path}
+	cmd := redis.NewIntCmd(ctx, args...)
+	_ = c(ctx, cmd)
+	return cmd
+}
+
+// JSONGet returns the value at path in JSON serialized form
+func (c cmdable) JSONGet(ctx context.Context, key string, paths ...string) *JSONStringCmd {
 
 	args := make([]interface{}, len(paths)+2)
 	args[0] = "json.get"
@@ -84,7 +100,24 @@ func (c cmdable) JSONGet(ctx context.Context, key string, paths ...string) *JSON
 		args[n+2] = path
 	}
 
-	cmd := NewJSONCmd(ctx, args...)
+	cmd := NewJSONStringCmd(ctx, args...)
+	_ = c(ctx, cmd)
+	return cmd
+}
+
+// JSONMGet returns the values at path from multiple key arguments
+// Note - the arguments are reversed when compared with `JSON.MGET` as we want
+// to follow the pattern of having the last argument be variable.
+func (c cmdable) JSONMGet(ctx context.Context, path string, keys ...string) *JSONStringSliceCmd {
+
+	args := make([]interface{}, len(keys)+1)
+	args[0] = "json.mget"
+	for n, keys := range keys {
+		args[n+1] = keys
+	}
+	args = append(args, path)
+
+	cmd := NewJSONStringSliceCmd(ctx, args...)
 	_ = c(ctx, cmd)
 	return cmd
 }
