@@ -122,6 +122,30 @@ func (c cmdable) JSONMGet(ctx context.Context, path string, keys ...string) *JSO
 	return cmd
 }
 
+// JSONNumIncrBy increments the number value stored at path by number
+func (c cmdable) JSONNumIncrBy(ctx context.Context, key, path string, value float64) *JSONStringCmd {
+	args := []interface{}{"json.numincrby", key, path, value}
+	cmd := NewJSONStringCmd(ctx, args...)
+	_ = c(ctx, cmd)
+	return cmd
+}
+
+// JSONObjKeys returns the keys in the object that's referenced by path
+func (c cmdable) JSONObjKeys(ctx context.Context, key, path string) *redis.SliceCmd {
+	args := []interface{}{"json.objkeys", key, path}
+	cmd := redis.NewSliceCmd(ctx, args...)
+	_ = c(ctx, cmd)
+	return cmd
+}
+
+// JSONObjLen reports the number of keys in the JSON object at path in key
+func (c cmdable) JSONObjLen(ctx context.Context, key, path string) *IntSlicePointerCmd {
+	args := []interface{}{"json.objlen", key, path}
+	cmd := NewIntSlicePointerCmd(ctx, args...)
+	_ = c(ctx, cmd)
+	return cmd
+}
+
 // JSONSet sets the JSON value at the given path in the given key. The value must be something that
 // can be marshalled to JSON (using encoding/JSON) unless the argument is a string when we assume that
 // it can be passed directly as JSON.
@@ -158,5 +182,21 @@ func (c cmdable) JSONSetMode(ctx context.Context, key, path string, value interf
 		_ = c(ctx, cmd)
 	}
 
+	return cmd
+}
+
+// JSONStrAppend appends the json-string values to the string at path
+func (c cmdable) JSONStrAppend(ctx context.Context, key, path, value string) *IntSlicePointerCmd {
+	args := []interface{}{"json.strappend", key, path, value}
+	cmd := NewIntSlicePointerCmd(ctx, args...)
+	_ = c(ctx, cmd)
+	return cmd
+}
+
+// JSONStrLen reports the length of the JSON String at path in key
+func (c cmdable) JSONStrLen(ctx context.Context, key, path string) *IntSlicePointerCmd {
+	args := []interface{}{"json.strlen", key, path}
+	cmd := NewIntSlicePointerCmd(ctx, args...)
+	_ = c(ctx, cmd)
 	return cmd
 }

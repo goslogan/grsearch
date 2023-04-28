@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/goslogan/grstack/internal"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -282,13 +283,12 @@ func (c *JSONStringCmd) postProcess() error {
 		return nil
 	}
 
-	objects := []interface{}{}
-	if err := json.Unmarshal([]byte(c.StringCmd.Val()), &objects); err == nil {
-		c.val = objects
-		return nil
-	} else {
+	if objects, err := internal.ExtractJSONValue(c.StringCmd.Val()); err != nil {
 		c.SetErr(err)
 		return err
+	} else {
+		c.SetVal(objects)
+		return nil
 	}
 }
 
@@ -356,14 +356,10 @@ func (c *JSONStringSliceCmd) postProcess() error {
 	results := [][]interface{}{}
 
 	for _, val := range c.StringSliceCmd.Val() {
-		objects := []interface{}{}
-		if val == "" {
-			results = append(results, nil)
+		if objects, err := internal.ExtractJSONValue(val); err != nil {
+			c.SetErr(err)
+			return err
 		} else {
-			if err := json.Unmarshal([]byte(val), &objects); err != nil {
-				c.SetErr(err)
-				return err
-			}
 			results = append(results, objects)
 		}
 	}
@@ -381,6 +377,64 @@ func (cmd *JSONStringSliceCmd) Val() [][]interface{} {
 }
 
 func (cmd *JSONStringSliceCmd) Result() ([][]interface{}, error) {
+	return cmd.Val(), cmd.Err()
+}
+
+/*******************************************************************************
+*
+* IntSlicePointerCmd
+* used to represent a RedisJSON response where the result is either an integer or nil
+*
+*******************************************************************************/
+
+type IntSlicePointerCmd struct {
+	redis.SliceCmd
+	val []*int64
+}
+
+// NewIntSlicePointerCmd initialises an IntSlicePointerCmd
+func NewIntSlicePointerCmd(ctx context.Context, args ...interface{}) *IntSlicePointerCmd {
+	return &IntSlicePointerCmd{
+		SliceCmd: *redis.NewSliceCmd(ctx, args...),
+	}
+}
+
+// postProcess converts an array of bulk string responses into
+// an array of arrays of interfaces.
+// an array of json.RawMessage objects
+func (c *IntSlicePointerCmd) postProcess() error {
+
+	if len(c.SliceCmd.Val()) == 0 {
+		c.val = nil
+		c.SetErr(nil)
+		return nil
+	}
+
+	results := []*int64{}
+
+	for _, val := range c.SliceCmd.Val() {
+		var result int64
+		if val == nil {
+			results = append(results, nil)
+		} else {
+			result = val.(int64)
+			results = append(results, &result)
+		}
+	}
+
+	c.SetVal(results)
+	return nil
+}
+
+func (cmd *IntSlicePointerCmd) SetVal(val []*int64) {
+	cmd.val = val
+}
+
+func (cmd *IntSlicePointerCmd) Val() []*int64 {
+	return cmd.val
+}
+
+func (cmd *IntSlicePointerCmd) Result() ([]*int64, error) {
 	return cmd.Val(), cmd.Err()
 }
 
