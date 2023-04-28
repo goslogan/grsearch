@@ -330,3 +330,71 @@ var _ = Describe("Append to Strings", Label("misc", "json.strappend"), func() {
 	})
 
 })
+
+var _ = Describe("Toggle Booleans", Label("misc", "json.toggle"), func() {
+
+	It("append to a simple string", func() {
+		cmd1 := client.JSONSet(ctx, "toggle1", "$", `[true]`)
+		Expect(cmd1.Err()).NotTo(HaveOccurred())
+		Expect(cmd1.Val()).To(Equal("OK"))
+
+		cmd2 := client.JSONToggle(ctx, "toggle1", "$[0]")
+		Expect(cmd2.Err()).NotTo(HaveOccurred())
+		Expect(cmd2.Val()).To(HaveLen(1))
+		Expect(*cmd2.Val()[0]).To(Equal(int64(0)))
+	})
+
+	It("toggle several values", func() {
+		cmd1 := client.JSONSet(ctx, "toggle2", "$", `{"a": true, "b": [1, 2, false], "c": {"a": true, "b": "false"}}`)
+		Expect(cmd1.Err()).NotTo(HaveOccurred())
+		Expect(cmd1.Val()).To(Equal("OK"))
+
+		cmd2 := client.JSONToggle(ctx, "toggle2", "$..*")
+		Expect(cmd2.Err()).NotTo(HaveOccurred())
+		Expect(cmd2.Val()).To(HaveLen(8))
+		var tmp int64 = 20
+		Expect(cmd2.Val()[0]).To(BeAssignableToTypeOf(&tmp))
+		Expect(*cmd2.Val()[0]).To(Equal(int64(0)))
+		Expect(cmd2.Val()[1]).To(BeNil())
+		Expect(cmd2.Val()[2]).To(BeNil())
+		Expect(cmd2.Val()[3]).To(BeNil())
+		Expect(cmd2.Val()[4]).To(BeNil())
+		Expect(*cmd2.Val()[5]).To(Equal(int64(1)))
+		Expect(*cmd2.Val()[6]).To(Equal(int64(0)))
+		Expect(cmd2.Val()[7]).To(BeNil())
+	})
+
+})
+
+var _ = Describe("Get types", Label("misc", "json.type"), func() {
+
+	It("get the type of a single key", func() {
+		cmd1 := client.JSONSet(ctx, "type1", "$", `[true]`)
+		Expect(cmd1.Err()).NotTo(HaveOccurred())
+		Expect(cmd1.Val()).To(Equal("OK"))
+
+		cmd2 := client.JSONType(ctx, "type1", "$[0]")
+		Expect(cmd2.Err()).NotTo(HaveOccurred())
+		Expect(cmd2.Val()).To(HaveLen(1))
+		Expect(cmd2.Val()[0]).To(Equal("boolean"))
+	})
+
+	It("get all the types of an objects", func() {
+		cmd1 := client.JSONSet(ctx, "type2", "$", `{"a": true, "b": [1, 2, false], "c": {"a": true, "b": "false"}}`)
+		Expect(cmd1.Err()).NotTo(HaveOccurred())
+		Expect(cmd1.Val()).To(Equal("OK"))
+
+		cmd2 := client.JSONType(ctx, "type2", "$..*")
+		Expect(cmd2.Err()).NotTo(HaveOccurred())
+		Expect(cmd2.Val()).To(HaveLen(8))
+		Expect(cmd2.Val()[0]).To(Equal("boolean"))
+		Expect(cmd2.Val()[1]).To(Equal("array"))
+		Expect(cmd2.Val()[2]).To(Equal("object"))
+		Expect(cmd2.Val()[3]).To(Equal("integer"))
+		Expect(cmd2.Val()[4]).To(Equal("integer"))
+		Expect(cmd2.Val()[5]).To(Equal("boolean"))
+		Expect(cmd2.Val()[6]).To(Equal("boolean"))
+		Expect(cmd2.Val()[7]).To(Equal("string"))
+	})
+
+})

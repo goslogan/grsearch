@@ -200,3 +200,19 @@ func (c cmdable) JSONStrLen(ctx context.Context, key, path string) *IntSlicePoin
 	_ = c(ctx, cmd)
 	return cmd
 }
+
+// JSONToggle toggles a Boolean value stored at path
+func (c cmdable) JSONToggle(ctx context.Context, key, path string) *IntSlicePointerCmd {
+	args := []interface{}{"json.toggle", key, path}
+	cmd := NewIntSlicePointerCmd(ctx, args...)
+	_ = c(ctx, cmd)
+	return cmd
+}
+
+// JSONType reports the type of JSON value at path
+func (c cmdable) JSONType(ctx context.Context, key, path string) *redis.StringSliceCmd {
+	args := []interface{}{"json.type", key, path}
+	cmd := redis.NewStringSliceCmd(ctx, args...)
+	_ = c(ctx, cmd)
+	return cmd
+}
