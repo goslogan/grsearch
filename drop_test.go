@@ -1,19 +1,18 @@
-package ftsearch_test
+package grstack_test
 
 import (
 	"fmt"
 
+	"github.com/goslogan/grstack"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	"github.com/RedisLabs-Solution-Architects/go-redis-stack/ftsearch"
 )
 
 var _ = Describe("Drop", func() {
 
 	BeforeEach(func() {
 		// Requires redis on localhost:6379 with search module!
-		Expect(client.FTCreateIndex(ctx, "drop_test", ftsearch.NewIndexOptions().AddSchemaAttribute(ftsearch.TextAttribute{
+		Expect(client.FTCreateIndex(ctx, "drop_test", grstack.NewIndexOptions().AddSchemaAttribute(grstack.TextAttribute{
 			Name:  "foo",
 			Alias: "bar",
 		})).Err()).NotTo(HaveOccurred())
@@ -30,9 +29,11 @@ var _ = Describe("Drop", func() {
 	})
 
 	It("can drop an index but keep the docs", func() {
-		Expect(client.DBSize(ctx).Val()).To(Equal(int64(392)))
+		cmd := client.DBSize(ctx)
+		Expect(cmd.Err()).NotTo(HaveOccurred())
+		size := cmd.Val()
 		Expect(client.FTDropIndex(ctx, "drop_test", false).Err()).NotTo(HaveOccurred())
-		Expect(client.DBSize(ctx).Val()).To(Equal(int64(392)))
+		Expect(client.DBSize(ctx).Val()).To(Equal(size))
 	})
 
 	/* It("can drop an index and remove the docs", func() {
