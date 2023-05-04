@@ -58,7 +58,9 @@ var _ = Describe("Query basics", func() {
 var _ = Describe("Query options", func() {
 
 	It("will return empty results - NOCONTENT", func() {
-		Expect(client.FTSearch(ctx, "customers", `@id:{1121175}`, grstack.NewQueryOptions().WithoutContent()).Val()).To(Equal(
+		opts := grstack.NewQueryOptions()
+		opts.NoContent = true
+		Expect(client.FTSearch(ctx, "customers", `@id:{1121175}`, opts).Val()).To(Equal(
 			map[string]*grstack.QueryResult{
 				"account:1121175": {
 					Score: 0,
@@ -66,22 +68,33 @@ var _ = Describe("Query options", func() {
 	})
 
 	It("will return scores - WITHSCORES", func() {
-		cmd := client.FTSearch(ctx, "customers", `@id:{1121175}`, grstack.NewQueryOptions().WithScores())
+		opts := grstack.NewQueryOptions()
+		opts.WithScores = true
+		cmd := client.FTSearch(ctx, "customers", `@id:{1121175}`, opts)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		Expect(cmd.Val()["account:1121175"].Score).Should(BeNumerically(">=", 1))
 	})
 
 	It("will return filtered results - FILTER (numeric)", func() {
-		cmd := client.FTSearch(ctx, "customers", `@owner:{nic\.gibson}`, grstack.NewQueryOptions().
-			WithoutContent().
-			AddFilter(grstack.NewQueryFilter("balance").WithMinExclusive(0).WithMaxInclusive(math.Inf(1))))
+		opts := grstack.NewQueryOptions()
+		opts.NoContent = true
+		opts.Filters = []grstack.QueryFilter{
+			{
+				Attribute: "balance",
+				Min:       grstack.FilterValue(0, true),
+				Max:       grstack.FilterValue(math.Inf(1), false),
+			},
+		}
+		cmd := client.FTSearch(ctx, "customers", `@owner:{nic\.gibson}`, opts)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		Expect(len(cmd.Val())).To(Equal(2))
 	})
 
 	It("can explain a score", func() {
-		cmd := client.FTSearch(ctx, "customers", `@owner:{nic\.gibson}`, grstack.NewQueryOptions().
-			WithScores().WithExplainScore())
+		opts := grstack.NewQueryOptions()
+		opts.WithScores = true
+		opts.ExplainScore = true
+		cmd := client.FTSearch(ctx, "customers", `@owner:{nic\.gibson}`, opts)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		Expect(len(cmd.Val())).NotTo(BeZero())
 		Expect(cmd.Val()["account:806396"].Explanation).NotTo(BeNil())
@@ -89,8 +102,10 @@ var _ = Describe("Query options", func() {
 
 	It("can sort results", func() {
 		results := []string{}
-		cmd := client.FTSearch(ctx, "customers", `@owner:{nic\.gibson}`, grstack.NewQueryOptions().
-			WithoutContent().WithSortBy("customer"))
+		opts := grstack.NewQueryOptions()
+		opts.NoContent = true
+		opts.SortBy = "customer"
+		cmd := client.FTSearch(ctx, "customers", `@owner:{nic\.gibson}`, opts)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		for k := range cmd.Val() {
 			results = append(results, k)
