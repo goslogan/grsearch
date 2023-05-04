@@ -113,7 +113,7 @@ func (cmd *QueryCmd) postProcess() error {
 		key := rawResults[i+j].(string)
 		j++
 
-		if cmd.options.Scores {
+		if cmd.options.WithScores {
 			if cmd.options.ExplainScore {
 				scoreData := rawResults[i+j].([]interface{})
 				score = scoreData[0].(float64)
