@@ -69,6 +69,7 @@ var LoadAll = AggregateLoad{Name: "*"}
 // NewAggregateOptions creates a new query with defaults set
 func NewAggregateOptions() *AggregateOptions {
 	return &AggregateOptions{
+		Params:  map[string]interface{}{},
 		Dialect: defaultDialect,
 	}
 }
@@ -145,7 +146,13 @@ func (l AggregateLoad) serialize() []interface{} {
 }
 
 func (s AggregateSort) serialize() []interface{} {
+
 	nArgs := len(s.Keys)
+
+	if nArgs == 0 {
+		return []interface{}{}
+	}
+
 	if nArgs > 0 && s.Max != 0 {
 		nArgs += 2
 	}

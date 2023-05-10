@@ -98,6 +98,9 @@ func (a *AggregateBuilder) LoadAll() *AggregateBuilder {
 
 // SortBy adds a sorting key to this aggregate
 func (a *AggregateBuilder) SortBy(property, order string) *AggregateBuilder {
+	if a.opts.SortBy == nil {
+		a.opts.SortBy = &AggregateSort{}
+	}
 	a.opts.SortBy.Keys = append(a.opts.SortBy.Keys, AggregateSortKey{
 		Name:  property,
 		Order: order,
@@ -109,7 +112,16 @@ func (a *AggregateBuilder) SortBy(property, order string) *AggregateBuilder {
 // SortByMax sets the MAX limit on an aggregate sort key. This will be
 // ignored if not sort keys have been supplied.
 func (a *AggregateBuilder) SortByMax(max int64) *AggregateBuilder {
+	if a.opts.SortBy == nil {
+		a.opts.SortBy = &AggregateSort{}
+	}
 	a.opts.SortBy.Max = max
+	return a
+}
+
+// GroupBy adds a new group by statement (constructed with a GroupByBuilder)
+func (a *AggregateBuilder) GroupBy(g AggregateGroupBy) *AggregateBuilder {
+	a.opts.GroupBy = append(a.opts.GroupBy, g)
 	return a
 }
 
@@ -118,10 +130,15 @@ func (a *AggregateBuilder) SortByMax(max int64) *AggregateBuilder {
 *******************************************************************************/
 
 // NewGroupByBuilder creates a builder for group by statements in aggregates.
-func (a *AggregateBuilder) NewGroupByBuilder() *GroupByBuilder {
+func NewGroupByBuilder() *GroupByBuilder {
 	return &GroupByBuilder{
 		group: AggregateGroupBy{},
 	}
+}
+
+// GroupBy returns the grouping defined by the builder
+func (g *GroupByBuilder) GroupBy() AggregateGroupBy {
+	return g.group
 }
 
 // Property appends a property to the properties list, not adding it if

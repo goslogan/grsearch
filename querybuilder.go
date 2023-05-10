@@ -46,7 +46,7 @@ func (q *QueryBuilder) Return(identifier string, alias string) *QueryBuilder {
 }
 
 // Filter adds a filter to the current set
-func (q *QueryBuilder) Filter(attribute string, min, max float64) *QueryBuilder {
+func (q *QueryBuilder) Filter(attribute string, min, max interface{}) *QueryBuilder {
 	q.opts.Filters = append(q.opts.Filters, QueryFilter{
 		Attribute: attribute,
 		Min:       min,
@@ -119,7 +119,7 @@ func (q *QueryBuilder) WithScores() *QueryBuilder {
 }
 
 // ExplainScore sets the EXPLAINSCORE option for searches.
-func (q *QueryBuilder) WithExplainScore() *QueryBuilder {
+func (q *QueryBuilder) ExplainScore() *QueryBuilder {
 	q.opts.ExplainScore = true
 	return q
 }
@@ -127,6 +127,24 @@ func (q *QueryBuilder) WithExplainScore() *QueryBuilder {
 // WithPayloads sets the WITHPAYLOADS option for searches
 func (q *QueryBuilder) WithPayloads() *QueryBuilder {
 	q.opts.WithPayloads = true
+	return q
+}
+
+// Verbatim disables stemming.
+func (q *QueryBuilder) Verbatim() *QueryBuilder {
+	q.opts.Verbatim = true
+	return q
+}
+
+// Slop sets the slop length.
+func (q *QueryBuilder) Slop(slop int8) *QueryBuilder {
+	q.opts.Slop = slop
+	return q
+}
+
+// NoStopWords disables stop word checking
+func (q *QueryBuilder) NoStopWords() *QueryBuilder {
+	q.opts.NoStopWords = true
 	return q
 }
 
@@ -152,24 +170,4 @@ func (q *QueryBuilder) Param(name string, value interface{}) *QueryBuilder {
 func (q *QueryBuilder) Params(params map[string]interface{}) *QueryBuilder {
 	q.opts.Params = params
 	return q
-}
-
-/******************************************************************************
-* FilterBuilder																  *
-******************************************************************************/
-
-type FilterBuilder struct {
-	filter QueryFilter
-}
-
-// NewGroupByBuilder creates a builder for group by statements in aggregates.
-func (a *QueryBuilder) NewFilterBuilder() *FilterBuilder {
-	return &FilterBuilder{
-		filter: QueryFilter{},
-	}
-}
-
-// Filter returns the filter defined by the builder.
-func (a *FilterBuilder) Filter() QueryFilter {
-	return a.filter
 }

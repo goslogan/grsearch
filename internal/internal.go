@@ -2,8 +2,6 @@ package internal
 
 import (
 	"encoding/json"
-	"fmt"
-	"math"
 )
 
 // serializeCountedArgs is used to serialize a string array to
@@ -37,22 +35,6 @@ func ExtractJSONValue(val string) ([]interface{}, error) {
 		return objects, nil
 	}
 
-}
-
-// FilterValue formats a value for use in a filter and returns it
-func FilterValue(val float64, exclusive bool) interface{} {
-	prefix := ""
-	if exclusive {
-		prefix = "("
-	}
-
-	if math.IsInf(val, -1) {
-		return prefix + "-inf"
-	} else if math.IsInf(val, 1) {
-		return prefix + "+inf"
-	} else {
-		return fmt.Sprintf("%s%f", prefix, val)
-	}
 }
 
 // appendStringArg appends the name and value if value is not empty
