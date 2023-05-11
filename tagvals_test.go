@@ -12,7 +12,7 @@ var _ = Describe("Tagvals", func() {
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 
 		vals := cmd.Val()
-		Expect(vals).To(ContainElements([]string{"nic.gibson", "daniel.preiskel", "igor.jovanovic"}))
+		Expect(vals).To(ContainElements([]string{"lara.croft", "ellen.ripley", "sarah.oconnor"}))
 		Expect(len(vals)).To(Equal(3))
 	})
 })

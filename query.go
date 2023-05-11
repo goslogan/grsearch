@@ -75,6 +75,7 @@ func NewQueryOptions() *QueryOptions {
 		SortBy:  SortAsc,
 		Dialect: defaultDialect,
 		Timeout: defaultTimeout,
+		Params:  map[string]interface{}{},
 	}
 }
 

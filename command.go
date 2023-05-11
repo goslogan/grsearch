@@ -438,6 +438,61 @@ func (cmd *IntSlicePointerCmd) Result() ([]*int64, error) {
 	return cmd.Val(), cmd.Err()
 }
 
+/*******************************************************************************
+*
+* AggregateCmd
+* used to manage the results from FT.AGGREGATE calls
+*
+*******************************************************************************/
+
+type AggregateCmd struct {
+	redis.SliceCmd
+	val []map[string]string
+}
+
+func NewAggregateCmd(ctx context.Context, args ...interface{}) *AggregateCmd {
+	return &AggregateCmd{
+		SliceCmd: *redis.NewSliceCmd(ctx, args...),
+	}
+}
+
+func (c *AggregateCmd) postProcess() error {
+	if len(c.SliceCmd.Val()) == 0 {
+		c.val = nil
+		c.SetErr(nil)
+		return nil
+	}
+
+	results := make([]map[string]string, len(c.SliceCmd.Val())-1)
+
+	for n, entry := range c.SliceCmd.Val() {
+
+		if n > 0 {
+			row := entry.([]interface{})
+			asStrings := map[string]string{}
+			for m := 0; m < len(row); m += 2 {
+				asStrings[row[m].(string)] = row[m+1].(string)
+			}
+			results[n-1] = asStrings
+		}
+	}
+
+	c.SetVal(results)
+	return nil
+}
+
+func (cmd *AggregateCmd) SetVal(val []map[string]string) {
+	cmd.val = val
+}
+
+func (cmd *AggregateCmd) Val() []map[string]string {
+	return cmd.val
+}
+
+func (cmd *AggregateCmd) Result() ([]map[string]string, error) {
+	return cmd.Val(), cmd.Err()
+}
+
 type ExtCmder interface {
 	redis.Cmder
 	postProcess() error

@@ -26,6 +26,15 @@ func (c cmdable) FTCreateIndex(ctx context.Context, index string, options *Index
 	return cmd
 }
 
+// FTAggregate runs a search query on an index, and perform saggregate transformations on the results, extracting statistics etc from them
+func (c cmdable) FTAggregate(ctx context.Context, index, query string, options *AggregateOptions) *AggregateCmd {
+	args := []interface{}{"ft.aggregate", index, query}
+	args = append(args, options.serialize()...)
+	cmd := NewAggregateCmd(ctx, args...)
+	_ = c(ctx, cmd)
+	return cmd
+}
+
 // FTSearch queries an index.
 func (c cmdable) FTSearch(ctx context.Context, index string, query string, qryOptions *QueryOptions) *QueryCmd {
 	args := []interface{}{"ft.search", index, query}

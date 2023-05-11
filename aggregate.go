@@ -76,15 +76,19 @@ func NewAggregateOptions() *AggregateOptions {
 
 func (a *AggregateOptions) serialize() []interface{} {
 	args := []interface{}{}
-	if a.Timeout != defaultTimeout {
+	if a.Timeout != 0 {
 		args = internal.AppendStringArg(args, "timeout", fmt.Sprintf("%d", a.Timeout.Milliseconds()))
 	}
 
 	args = append(args, a.serializeLoad()...)
 	for _, g := range a.GroupBy {
-		args = append(args, g.serialize())
+		args = append(args, g.serialize()...)
 	}
-	args = append(args, a.SortBy.serialize()...)
+
+	if a.SortBy != nil {
+		args = append(args, a.SortBy.serialize()...)
+	}
+
 	for _, a := range a.Apply {
 		args = append(args, a.serialize()...)
 	}
@@ -117,6 +121,10 @@ func (a *AggregateOptions) serialize() []interface{} {
 }
 
 func (a *AggregateOptions) serializeLoad() []interface{} {
+
+	if len(a.Load) == 0 {
+		return []interface{}{}
+	}
 
 	if len(a.Load) == 1 && a.Load[0].Name == "*" {
 		return []interface{}{"load", "*"}
@@ -183,7 +191,7 @@ func (c *AggregateCursor) serialize() []interface{} {
 ******************************************************************************/
 
 func (r *AggregateReducer) serialize() []interface{} {
-	args := []interface{}{r.Name, len(r.Args)}
+	args := []interface{}{"reduce", r.Name, len(r.Args)}
 	args = append(args, r.Args...)
 	if r.As != "" {
 		args = append(args, "as", r.As)
@@ -194,7 +202,9 @@ func (r *AggregateReducer) serialize() []interface{} {
 
 func (g *AggregateGroupBy) serialize() []interface{} {
 	args := []interface{}{"GROUPBY", len(g.Properties)}
-	args = append(args, g.Properties)
+	for _, arg := range g.Properties {
+		args = append(args, arg)
+	}
 	for _, r := range g.Reducers {
 		args = append(args, r.serialize()...)
 	}

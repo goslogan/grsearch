@@ -38,7 +38,7 @@ var _ = Describe("Query basics", func() {
 						"email":         `kkorneichukc\@cpanel\.net`,
 						"ip":            `148\.140\.255\.235`,
 						"account_id":    "1121175",
-						"account_owner": "nic.gibson",
+						"account_owner": "lara.croft",
 						"balance":       "927.00",
 					}}}))
 	})
@@ -50,7 +50,7 @@ var _ = Describe("Query basics", func() {
 	})
 
 	It("can return all the results for a given tag", func() {
-		Expect(client.FTSearch(ctx, "customers", `@owner:{nic\.gibson}`, nil).Len()).To(Equal(10))
+		Expect(client.FTSearch(ctx, "customers", `@owner:{lara\.croft}`, nil).Len()).To(Equal(10))
 	})
 
 })
@@ -85,7 +85,7 @@ var _ = Describe("Query options", func() {
 				Max:       grstack.FilterValue(math.Inf(1), false),
 			},
 		}
-		cmd := client.FTSearch(ctx, "customers", `@owner:{nic\.gibson}`, opts)
+		cmd := client.FTSearch(ctx, "customers", `@owner:{lara\.croft}`, opts)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		Expect(len(cmd.Val())).To(Equal(2))
 	})
@@ -94,7 +94,7 @@ var _ = Describe("Query options", func() {
 		opts := grstack.NewQueryOptions()
 		opts.WithScores = true
 		opts.ExplainScore = true
-		cmd := client.FTSearch(ctx, "customers", `@owner:{nic\.gibson}`, opts)
+		cmd := client.FTSearch(ctx, "customers", `@owner:{lara\.croft}`, opts)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		Expect(len(cmd.Val())).NotTo(BeZero())
 		Expect(cmd.Val()["account:806396"].Explanation).NotTo(BeNil())
@@ -105,7 +105,7 @@ var _ = Describe("Query options", func() {
 		opts := grstack.NewQueryOptions()
 		opts.NoContent = true
 		opts.SortBy = "customer"
-		cmd := client.FTSearch(ctx, "customers", `@owner:{nic\.gibson}`, opts)
+		cmd := client.FTSearch(ctx, "customers", `@owner:{lara\.croft}`, opts)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		for k := range cmd.Val() {
 			results = append(results, k)
