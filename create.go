@@ -6,7 +6,7 @@ import "github.com/goslogan/grstack/internal"
 // SearchIndex defines an index to be created with FT.CREATE
 type IndexOptions struct {
 	On              string
-	Prefixes        []string
+	Prefix          []string
 	Filter          string
 	Language        string
 	LanguageField   string
@@ -54,8 +54,6 @@ type SchemaAttribute interface {
 	serialize() []interface{}
 }
 
-/* -- FLUENT INTERFACE to index options; schema options too simple to benefit -- */
-
 // NewIndexOptions returns an initialised IndexOptions struct with defaults set
 func NewIndexOptions() *IndexOptions {
 	return &IndexOptions{
@@ -64,147 +62,12 @@ func NewIndexOptions() *IndexOptions {
 	}
 }
 
-// AddSchemaAttribute appends a schema attribute to the IndexOptions' Schema array
-func (i *IndexOptions) AddSchemaAttribute(t SchemaAttribute) *IndexOptions {
-	i.Schema = append(i.Schema, t)
-	return i
-}
-
-// WithSchema sets the IndexOptions' Schema array to the provided values overwriting
-// any existing schema.
-func (i *IndexOptions) WithSchema(s []SchemaAttribute) *IndexOptions {
-	i.Schema = s
-	return i
-}
-
-// AddPrefix appends a prefix to the IndexOptions' Prefixes array
-func (i *IndexOptions) AddPrefix(prefix string) *IndexOptions {
-	i.Prefixes = append(i.Prefixes, prefix)
-	return i
-}
-
-// WithPrefixes sets the IndexOptions' Prefix array to the provided values overwriting
-// any existing prefixes.
-func (i *IndexOptions) WithPrefixes(prefixes []string) *IndexOptions {
-	i.Prefixes = prefixes
-	return i
-}
-
-// WithFilter sets the IndexOptions' Filter field to the provided value
-func (i *IndexOptions) WithFilter(filter string) *IndexOptions {
-	i.Filter = filter
-	return i
-}
-
-// WithLanguage sets the IndexOptions' Language field to the provided value, setting
-// the default language for the index
-func (i *IndexOptions) WithLanguage(language string) *IndexOptions {
-	i.Language = language
-	return i
-}
-
-// WithLanguageField sets the IndexOptions' LanguageField field to the provided value, setting
-// the field definining language in the index
-func (i *IndexOptions) WithLanguageField(field string) *IndexOptions {
-	i.LanguageField = field
-	return i
-}
-
-// WithScore sets the IndexOptions' Score field to the provided value, setting
-// the default score for documents (this should be zero to 1.0 and is not
-// checked)
-func (i *IndexOptions) WithScore(score float64) *IndexOptions {
-	i.Score = score
-	return i
-}
-
-// WithScoreField sets the IndexOptions' ScoreField field to the provided value, setting
-// the field defining document score in the index
-func (i *IndexOptions) WithScoreField(field string) *IndexOptions {
-	i.ScoreField = field
-	return i
-}
-
-/*
-
-	StopWords       []string
-	UseStopWords    bool
-	SkipInitialscan bool
-
-*/
-
-// WithMaxTextFields sets the IndexOptions' MaxTextFields field to true
-func (i *IndexOptions) WithMaxTextFields() *IndexOptions {
-	i.MaxTextFields = true
-	return i
-}
-
-// WithNoOffsets sets the IndexOptions' NoOffsets field to true
-func (i *IndexOptions) WithNoOffsets() *IndexOptions {
-	i.NoOffsets = true
-	return i
-}
-
-// AsTempoary sets the Temporary  field to the given number of seconds.
-func (i *IndexOptions) AsTemporary(secs uint64) *IndexOptions {
-	i.Temporary = secs
-	return i
-}
-
-// WithNoHighlight sets the IndexOptions' NoHighlight field to true
-func (i *IndexOptions) WithNoHighlight() *IndexOptions {
-	i.NoHighlight = true
-	return i
-}
-
-// WithNoHighlight sets the IndexOptions' NoFields field to true
-func (i *IndexOptions) WithNoFields() *IndexOptions {
-	i.NoFields = true
-	return i
-}
-
-// WithNoHighlight sets the IndexOptions' NoFreqs field to true.
-func (i *IndexOptions) WithNoFreqs() *IndexOptions {
-	i.NoFreqs = true
-	return i
-}
-
-// SkipInitialscan sets the IndexOptions' SkipInitialscan field to true.
-func (i *IndexOptions) WithSkipInitialscan() *IndexOptions {
-	i.SkipInitialscan = true
-	return i
-}
-
-// AddStopWord appends a new stopword to the IndexOptions' stopwords array
-// and sets UseStopWords to true
-func (i *IndexOptions) AddStopWord(word string) *IndexOptions {
-	i.StopWords = append(i.StopWords, word)
-	i.UseStopWords = true
-	return i
-}
-
-// WithStopWords sets the IndexOptions' StopWords array to a new value
-// and sets UseStopWords to true if the array has any entries
-func (i *IndexOptions) WithStopWords(words []string) *IndexOptions {
-	i.StopWords = words
-	i.UseStopWords = len(words) > 0
-	return i
-}
-
-// WithNoStopWords sets IndexOptions' StopWords array to empty and
-// sets UseStopWords to true to ensure the index uses no stopwords at all
-func (i *IndexOptions) WithNoStopWords() *IndexOptions {
-	i.UseStopWords = true
-	i.StopWords = []string{}
-	return i
-}
-
 /* ---- SERIALIZATION METHODS */
 
 func (i *IndexOptions) serialize() []interface{} {
 
 	args := []interface{}{"on", i.On}
-	args = append(args, internal.SerializeCountedArgs("prefix", false, i.Prefixes)...)
+	args = append(args, internal.SerializeCountedArgs("prefix", false, i.Prefix)...)
 
 	if i.Filter != "" {
 		args = append(args, "filter", i.Filter)

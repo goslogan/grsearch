@@ -16,7 +16,7 @@ var _ = Describe("We can build query options", Label("builders", "ft.search"), f
 				Reduce(grstack.ReduceSum("@balance", "total_balance")).
 				GroupBy())
 
-		cmd := client.FTAggregate(ctx, "customers", "*", opts.Options())
+		cmd := client.FTAggregate(ctx, "hcustomers", "*", opts.Options())
 		Expect(cmd.Err()).ToNot(HaveOccurred())
 	})
 

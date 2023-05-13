@@ -8,7 +8,7 @@ import (
 var _ = Describe("Tagvals", func() {
 
 	It("can get tag values from the index", func() {
-		cmd := client.FTTagVals(ctx, "customers", "owner")
+		cmd := client.FTTagVals(ctx, "hcustomers", "owner")
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 
 		vals := cmd.Val()

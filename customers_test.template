@@ -1,0 +1,2 @@
+{"customer": "{{index . 0}} {{index . 1}}", "email": "{{index . 2}}", "ip": "{{index . 3}}", "account_id":  "{{index . 4}}", "account_owner": "{{index . 5}}", "balance": "{{index . 6}}"
+}

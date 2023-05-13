@@ -9,60 +9,62 @@ import (
 )
 
 // ft.search accounts "@tam:nic\.gibson"
-var _ = Describe("Query basics", func() {
+var _ = Describe("Query basics", Label("query", "ft.search"), func() {
 
 	It("doesn't raise an error on a valid query", func() {
-		Expect(client.FTSearch(ctx, "customers", `@email:ejowers0\@unblog\.fr`, nil).
+		Expect(client.FTSearch(ctx, "hcustomers", `@email:ejowers0\@unblog\.fr`, nil).
 			Err()).To(Not(HaveOccurred()))
 	})
 	It("can generate a valid query", func() {
-		Expect(client.FTSearch(ctx, "customers", `@email:ejowers0\@unblog\.fr`, nil).
-			String()).To(ContainSubstring(`ft.search customers @email:ejowers0\@unblog\.fr`))
+		Expect(client.FTSearch(ctx, "hcustomers", `@email:ejowers0@unblog.fr`, nil).
+			String()).To(ContainSubstring(`ft.search hcustomers @email:ejowers0@unblog.fr`))
 	})
 
 	It("can search for a specific result by attribute", func() {
-		Expect(client.FTSearch(ctx, "customers", `@email:ejowers0\@unblog\.fr`, nil).Err()).NotTo(HaveOccurred())
+		cmd := client.FTSearch(ctx, "hcustomers", `@email:ejowers0\@unblog\.fr`, nil)
+		Expect(cmd.Err()).NotTo(HaveOccurred())
 	})
 
 	It("can return a single result", func() {
-		Expect(client.FTSearch(ctx, "customers", `@email:ejowers0\@unblog\.fr`, nil).Len()).To(Equal(1))
+		Expect(client.FTSearch(ctx, "hcustomers", `@email:ejowers0\@unblog\.fr`, nil).Len()).To(Equal(1))
 	})
 
 	It("can return a map result", func() {
-		Expect(client.FTSearch(ctx, "customers", `@id:{1121175}`, nil).Val()).To(Equal(
+		Expect(client.FTSearch(ctx, "hcustomers", `@id:{1121175}`, nil).Val()).To(Equal(
 			map[string]*grstack.QueryResult{
-				"account:1121175": {
+				"haccount:1121175": {
 					Score: 0,
 					Value: map[string]string{
+						"account_owner": "lara.croft",
+						"balance":       "927.00",
 						"customer":      "Kandace Korneichuk",
 						"email":         `kkorneichukc\@cpanel\.net`,
 						"ip":            `148\.140\.255\.235`,
 						"account_id":    "1121175",
-						"account_owner": "lara.croft",
-						"balance":       "927.00",
 					}}}))
 	})
 
 	It("will fail quietly with no search defined", func() {
-		cmd := client.FTSearch(ctx, "customers", "", nil)
+		cmd := client.FTSearch(ctx, "hcustomers", "", nil)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		Expect(cmd.Len()).To(Equal(0))
 	})
 
 	It("can return all the results for a given tag", func() {
-		Expect(client.FTSearch(ctx, "customers", `@owner:{lara\.croft}`, nil).Len()).To(Equal(10))
+		Expect(client.FTSearch(ctx, "hcustomers", `@owner:{lara\.croft}`, nil).Len()).To(Equal(10))
 	})
 
 })
 
-var _ = Describe("Query options", func() {
+var _ = Describe("Query options", Label("query", "ft.search"), func() {
 
 	It("will return empty results - NOCONTENT", func() {
 		opts := grstack.NewQueryOptions()
 		opts.NoContent = true
-		Expect(client.FTSearch(ctx, "customers", `@id:{1121175}`, opts).Val()).To(Equal(
+		cmd := client.FTSearch(ctx, "hcustomers", `@id:{1121175}`, opts)
+		Expect(cmd.Val()).To(Equal(
 			map[string]*grstack.QueryResult{
-				"account:1121175": {
+				"haccount:1121175": {
 					Score: 0,
 					Value: nil}}))
 	})
@@ -70,9 +72,9 @@ var _ = Describe("Query options", func() {
 	It("will return scores - WITHSCORES", func() {
 		opts := grstack.NewQueryOptions()
 		opts.WithScores = true
-		cmd := client.FTSearch(ctx, "customers", `@id:{1121175}`, opts)
+		cmd := client.FTSearch(ctx, "hcustomers", `@id:{1121175}`, opts)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
-		Expect(cmd.Val()["account:1121175"].Score).Should(BeNumerically(">=", 1))
+		Expect(cmd.Val()["haccount:1121175"].Score).Should(BeNumerically(">=", 1))
 	})
 
 	It("will return filtered results - FILTER (numeric)", func() {
@@ -85,7 +87,7 @@ var _ = Describe("Query options", func() {
 				Max:       grstack.FilterValue(math.Inf(1), false),
 			},
 		}
-		cmd := client.FTSearch(ctx, "customers", `@owner:{lara\.croft}`, opts)
+		cmd := client.FTSearch(ctx, "hcustomers", `@owner:{lara\.croft}`, opts)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		Expect(len(cmd.Val())).To(Equal(2))
 	})
@@ -94,10 +96,10 @@ var _ = Describe("Query options", func() {
 		opts := grstack.NewQueryOptions()
 		opts.WithScores = true
 		opts.ExplainScore = true
-		cmd := client.FTSearch(ctx, "customers", `@owner:{lara\.croft}`, opts)
+		cmd := client.FTSearch(ctx, "hcustomers", `@owner:{lara\.croft}`, opts)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		Expect(len(cmd.Val())).NotTo(BeZero())
-		Expect(cmd.Val()["account:806396"].Explanation).NotTo(BeNil())
+		Expect(cmd.Val()["haccount:806396"].Explanation).NotTo(BeNil())
 	})
 
 	It("can sort results", func() {
@@ -105,12 +107,12 @@ var _ = Describe("Query options", func() {
 		opts := grstack.NewQueryOptions()
 		opts.NoContent = true
 		opts.SortBy = "customer"
-		cmd := client.FTSearch(ctx, "customers", `@owner:{lara\.croft}`, opts)
+		cmd := client.FTSearch(ctx, "hcustomers", `@owner:{lara\.croft}`, opts)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		for k := range cmd.Val() {
 			results = append(results, k)
 		}
-		Expect(results).To(ConsistOf([]string{"account:1339089", "account:239155", "account:575072", "account:765279", "account:1826581", "account:1371128", "account:1121175", "account:886088", "account:806396", "account:507187"}))
+		Expect(results).To(ConsistOf([]string{"haccount:1339089", "haccount:239155", "haccount:575072", "haccount:765279", "haccount:1826581", "haccount:1371128", "haccount:1121175", "haccount:886088", "haccount:806396", "haccount:507187"}))
 
 	})
 

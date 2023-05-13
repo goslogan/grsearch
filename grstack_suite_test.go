@@ -1,11 +1,18 @@
 package grstack_test
 
 import (
+	"bytes"
 	"context"
+	"encoding/csv"
 	"fmt"
+	"io"
+	"regexp"
 	"strings"
 	"testing"
+	"text/template"
 	"time"
+
+	_ "embed"
 
 	grstack "github.com/goslogan/grstack"
 	. "github.com/onsi/ginkgo/v2"
@@ -13,405 +20,170 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+//go:embed customers_test.csv
+var customerData string
+
+//go:embed customers_test.template
+var customerJSON string
+
+//go:embed commands_test.csv
+var commandData string
+
+//go:embed commands_test.template
+var commandJSON string
+
 var client *grstack.Client
 var ctx = context.Background()
 
-var testData = [][]string{
-	{"Davon", "Audley", `daudley3\@alexa.com`, `174\.113\.231\.230`, "536299", "ellen.ripley", "113.00"},
-	{"Emmet", "Jowers", `ejowers0\@unblog\.fr`, `167\.230\.3\.244`, "467734", "sarah.oconnor", "-999.99"},
-	{"Essy", "Kiddle", `ekiddle1\@si\.edu`, `230\.144\.170\.69`, "1044493", "sarah.oconnor", "0"},
-	{"Vlad", "Darrigrand", `vdarrigrand2\@kickstarter\.com`, `45\.89\.83\.231`, "508709", "sarah.oconnor", "0"},
-	{"Remington", "Ponceford", `rponceford4\@topsy\.com`, `236\.175\.61\.40`, "1505510", "sarah.oconnor", "0"},
-	{"Aili", "Brahms", `abrahms5\@wikia\.com`, `182\.115\.99\.238`, "1339089", `lara.croft`, "0"},
-	{"Lynn", "Beed", `lbeed6\@jalbum\.net`, `142\.218\.3\.176`, "886088", "lara.croft", "0"},
-	{"Corabelle", "Bertelmot", `cbertelmot7\@amazon\.com`, `122\.247\.52\.99`, "1222097", "sarah.oconnor", "-3402.00"},
-	{"Demetri", "Vigors", `dvigors8\@w3\.org`, `40\.75\.113\.150`, "1952347", "sarah.oconnor", "1371.00"},
-	{"Rafaelita", "Wisam", `rwisam9\@vk\.com`, `175\.40\.66\.248`, "507187", "lara.croft", "0"},
-	{"Jsandye", "Sprackling", `jspracklinga\@ow\.ly`, `177\.67\.221\.138`, "419113", "sarah.oconnor", "0"},
-	{"Chen", "Clilverd", `cclilverdb\@stanford\.edu`, `164\.230\.108\.100`, "765279", "lara.croft", "0"},
-	{"Kandace", "Korneichuk", `kkorneichukc\@cpanel\.net`, `148\.140\.255\.235`, "1121175", "lara.croft", "927.00"},
-	{"Brandy", "Gustus", `bgustusd\@loc\.gov`, `233\.98\.10\.248`, "575072", "lara.croft", "3.24"},
-	{"Annabal", "O'Carran", `aocarrane\@instagram\.com`, `234\.240\.12\.81`, "1888382", "sarah.oconnor", "-560.88"},
-	{"Gizela", "Rolph", `grolphf\@theguardian\.com`, `91\.16\.124\.34`, "1371128", "lara.croft", "0"},
-	{"Curtice", "Iscowitz", `ciscowitzg\@newyorker\.com`, `118\.83\.100\.5`, "1826581", "lara.croft", "0"},
-	{"Meggy", "Sheward", `mshewardh\@alexa\.com`, `56\.21\.83\.123`, "806396", "lara.croft", "0"},
-	{"Binnie", "Sowerby", `bsowerbyi\@china\.com.cn`, `185\.1\.56\.15`, "239155", "lara.croft", "0"},
-	{"Tamarah", "Hallybone", `thallybonej\@wisc\.edu`, `115\.140\.35\.151`, "376460", "sarah.oconnor", "-6503.33"},
-	{"Niko", "Drillingcourt", `ndrillingcourtk\@nydailynews\.com`, `37\.18\.13\.16`, "1443633", "sarah.oconnor", "-1200.23"},
-	{"Martynne", "Shovell", `mshovelll\@google\.com.br`, `73\.142\.109\.212`, "1840413", "sarah.oconnor", "0"},
-	{"Trev", "Todman", `ttodmanm\@rambler\.ru`, `137\.130\.15\.201`, "232226", "sarah.oconnor", "-991.31"},
-	{"Fields", "Baldry", `fbaldryn\@weibo\.com`, `58\.157\.227\.177`, "355348", "sarah.oconnor", "0"},
-	{"Tracy", "Pauly", `tpaulyo\@myspace\.com`, `75\.189\.188\.225`, "1838082", "sarah.oconnor", "650.01"},
+// convert strings that need to stay "as one for tokenising"
+func escapeForHash(s string) string {
+	re := regexp.MustCompile(`([,.<>{}\[\]"':;!@#$%^&*()\-+=~ ])`)
+	return re.ReplaceAllString(s, `\$1`)
 }
 
-var testText = []map[string]string{
-	{"command": "ACL", "summary": "A container for Access List Control commands ", "group": "server"},
-	{"command": "ACL CAT", "summary": "List the ACL categories or the commands inside a category", "group": "server"},
-	{"command": "ACL DELUSER", "summary": "Remove the specified ACL users and the associated rules", "group": "server"},
-	{"command": "ACL DRYRUN", "summary": "Returns whether the user can execute the given command without executing the command.", "group": "server"},
-	{"command": "ACL GENPASS", "summary": "Generate a pseudorandom secure password to use for ACL users", "group": "server"},
-	{"command": "ACL GETUSER", "summary": "Get the rules for a specific ACL user", "group": "server"},
-	{"command": "ACL HELP", "summary": "Show helpful text about the different subcommands", "group": "server"},
-	{"command": "ACL LIST", "summary": "List the current ACL rules in ACL config file format", "group": "server"},
-	{"command": "ACL LOAD", "summary": "Reload the ACLs from the configured ACL file", "group": "server"},
-	{"command": "ACL LOG", "summary": "List latest events denied because of ACLs in place", "group": "server"},
-	{"command": "ACL SAVE", "summary": "Save the current ACL rules in the configured ACL file", "group": "server"},
-	{"command": "ACL SETUSER", "summary": "Modify or create the rules for a specific ACL user", "group": "server"},
-	{"command": "ACL USERS", "summary": "List the username of all the configured ACL rules", "group": "server"},
-	{"command": "ACL WHOAMI", "summary": "Return the name of the user associated to the current connection", "group": "server"},
-	{"command": "APPEND", "summary": "Append a value to a key", "group": "string"},
-	{"command": "ASKING", "summary": "Sent by cluster clients after an -ASK redirect", "group": "cluster"},
-	{"command": "AUTH", "summary": "Authenticate to the server", "group": "connection"},
-	{"command": "BGREWRITEAOF", "summary": "Asynchronously rewrite the append-only file", "group": "server"},
-	{"command": "BGSAVE", "summary": "Asynchronously save the dataset to disk", "group": "server"},
-	{"command": "BITCOUNT", "summary": "Count set bits in a string", "group": "bitmap"},
-	{"command": "BITFIELD", "summary": "Perform arbitrary bitfield integer operations on strings", "group": "bitmap"},
-	{"command": "BITFIELD_RO", "summary": "Perform arbitrary bitfield integer operations on strings. Read-only variant of BITFIELD", "group": "bitmap"},
-	{"command": "BITOP", "summary": "Perform bitwise operations between strings", "group": "bitmap"},
-	{"command": "BITPOS", "summary": "Find first bit set or clear in a string", "group": "bitmap"},
-	{"command": "BLMOVE", "summary": "Pop an element from a list, push it to another list and return it; or block until one is available", "group": "list"},
-	{"command": "BLMPOP", "summary": "Pop elements from a list, or block until one is available", "group": "list"},
-	{"command": "BLPOP", "summary": "Remove and get the first element in a list, or block until one is available", "group": "list"},
-	{"command": "BRPOP", "summary": "Remove and get the last element in a list, or block until one is available", "group": "list"},
-	{"command": "BRPOPLPUSH", "summary": "Pop an element from a list, push it to another list and return it; or block until one is available", "group": "list"},
-	{"command": "BZMPOP", "summary": "Remove and return members with scores in a sorted set or block until one is available", "group": "sorted-set"},
-	{"command": "BZPOPMAX", "summary": "Remove and return the member with the highest score from one or more sorted sets, or block until one is available", "group": "sorted-set"},
-	{"command": "BZPOPMIN", "summary": "Remove and return the member with the lowest score from one or more sorted sets, or block until one is available", "group": "sorted-set"},
-	{"command": "CLIENT", "summary": "A container for client connection commands", "group": "connection"},
-	{"command": "CLIENT CACHING", "summary": "Instruct the server about tracking or not keys in the next request", "group": "connection"},
-	{"command": "CLIENT GETNAME", "summary": "Get the current connection name", "group": "connection"},
-	{"command": "CLIENT GETREDIR", "summary": "Get tracking notifications redirection client ID if any", "group": "connection"},
-	{"command": "CLIENT HELP", "summary": "Show helpful text about the different subcommands", "group": "connection"},
-	{"command": "CLIENT ID", "summary": "Returns the client ID for the current connection", "group": "connection"},
-	{"command": "CLIENT INFO", "summary": "Returns information about the current client connection.", "group": "connection"},
-	{"command": "CLIENT KILL", "summary": "Kill the connection of a client", "group": "connection"},
-	{"command": "CLIENT LIST", "summary": "Get the list of client connections", "group": "connection"},
-	{"command": "CLIENT NO-EVICT", "summary": "Set client eviction mode for the current connection", "group": "connection"},
-	{"command": "CLIENT PAUSE", "summary": "Stop processing commands from clients for some time", "group": "connection"},
-	{"command": "CLIENT REPLY", "summary": "Instruct the server whether to reply to commands", "group": "connection"},
-	{"command": "CLIENT SETNAME", "summary": "Set the current connection name", "group": "connection"},
-	{"command": "CLIENT TRACKING", "summary": "Enable or disable server assisted client side caching support", "group": "connection"},
-	{"command": "CLIENT TRACKINGINFO", "summary": "Return information about server assisted client side caching for the current connection", "group": "connection"},
-	{"command": "CLIENT UNBLOCK", "summary": "Unblock a client blocked in a blocking command from a different connection", "group": "connection"},
-	{"command": "CLIENT UNPAUSE", "summary": "Resume processing of clients that were paused", "group": "connection"},
-	{"command": "CLUSTER", "summary": "A container for cluster commands", "group": "cluster"},
-	{"command": "CLUSTER ADDSLOTS", "summary": "Assign new hash slots to receiving node", "group": "cluster"},
-	{"command": "CLUSTER ADDSLOTSRANGE", "summary": "Assign new hash slots to receiving node", "group": "cluster"},
-	{"command": "CLUSTER BUMPEPOCH", "summary": "Advance the cluster config epoch", "group": "cluster"},
-	{"command": "CLUSTER COUNT-FAILURE-REPORTS", "summary": "Return the number of failure reports active for a given node", "group": "cluster"},
-	{"command": "CLUSTER COUNTKEYSINSLOT", "summary": "Return the number of local keys in the specified hash slot", "group": "cluster"},
-	{"command": "CLUSTER DELSLOTS", "summary": "Set hash slots as unbound in receiving node", "group": "cluster"},
-	{"command": "CLUSTER DELSLOTSRANGE", "summary": "Set hash slots as unbound in receiving node", "group": "cluster"},
-	{"command": "CLUSTER FAILOVER", "summary": "Forces a replica to perform a manual failover of its master.", "group": "cluster"},
-	{"command": "CLUSTER FLUSHSLOTS", "summary": "Delete a node's own slots information", "group": "cluster"},
-	{"command": "CLUSTER FORGET", "summary": "Remove a node from the nodes table", "group": "cluster"},
-	{"command": "CLUSTER GETKEYSINSLOT", "summary": "Return local key names in the specified hash slot", "group": "cluster"},
-	{"command": "CLUSTER HELP", "summary": "Show helpful text about the different subcommands", "group": "cluster"},
-	{"command": "CLUSTER INFO", "summary": "Provides info about Redis Cluster node state", "group": "cluster"},
-	{"command": "CLUSTER KEYSLOT", "summary": "Returns the hash slot of the specified key", "group": "cluster"},
-	{"command": "CLUSTER LINKS", "summary": "Returns a list of all TCP links to and from peer nodes in cluster", "group": "cluster"},
-	{"command": "CLUSTER MEET", "summary": "Force a node cluster to handshake with another node", "group": "cluster"},
-	{"command": "CLUSTER MYID", "summary": "Return the node id", "group": "cluster"},
-	{"command": "CLUSTER MYSHARDID", "summary": "Return the node shard id", "group": "cluster"},
-	{"command": "CLUSTER NODES", "summary": "Get Cluster config for the node", "group": "cluster"},
-	{"command": "CLUSTER REPLICAS", "summary": "List replica nodes of the specified master node", "group": "cluster"},
-	{"command": "CLUSTER REPLICATE", "summary": "Reconfigure a node as a replica of the specified master node", "group": "cluster"},
-	{"command": "CLUSTER RESET", "summary": "Reset a Redis Cluster node", "group": "cluster"},
-	{"command": "CLUSTER SAVECONFIG", "summary": "Forces the node to save cluster state on disk", "group": "cluster"},
-	{"command": "CLUSTER SET-CONFIG-EPOCH", "summary": "Set the configuration epoch in a new node", "group": "cluster"},
-	{"command": "CLUSTER SETSLOT", "summary": "Bind a hash slot to a specific node", "group": "cluster"},
-	{"command": "CLUSTER SHARDS", "summary": "Get array of cluster slots to node mappings", "group": "cluster"},
-	{"command": "CLUSTER SLAVES", "summary": "List replica nodes of the specified master node", "group": "cluster"},
-	{"command": "CLUSTER SLOTS", "summary": "Get array of Cluster slot to node mappings", "group": "cluster"},
-	{"command": "COMMAND", "summary": "Get array of Redis command details", "group": "server"},
-	{"command": "COMMAND COUNT", "summary": "Get total number of Redis commands", "group": "server"},
-	{"command": "COMMAND DOCS", "summary": "Get array of specific Redis command documentation", "group": "server"},
-	{"command": "COMMAND GETKEYS", "summary": "Extract keys given a full Redis command", "group": "server"},
-	{"command": "COMMAND GETKEYSANDFLAGS", "summary": "Extract keys and access flags given a full Redis command", "group": "server"},
-	{"command": "COMMAND HELP", "summary": "Show helpful text about the different subcommands", "group": "server"},
-	{"command": "COMMAND INFO", "summary": "Get array of specific Redis command details, or all when no argument is given.", "group": "server"},
-	{"command": "COMMAND LIST", "summary": "Get an array of Redis command names", "group": "server"},
-	{"command": "CONFIG", "summary": "A container for server configuration commands", "group": "server"},
-	{"command": "CONFIG GET", "summary": "Get the values of configuration parameters", "group": "server"},
-	{"command": "CONFIG HELP", "summary": "Show helpful text about the different subcommands", "group": "server"},
-	{"command": "CONFIG RESETSTAT", "summary": "Reset the stats returned by INFO", "group": "server"},
-	{"command": "CONFIG REWRITE", "summary": "Rewrite the configuration file with the in memory configuration", "group": "server"},
-	{"command": "CONFIG SET", "summary": "Set configuration parameters to the given values", "group": "server"},
-	{"command": "COPY", "summary": "Copy a key", "group": "generic"},
-	{"command": "DBSIZE", "summary": "Return the number of keys in the selected database", "group": "server"},
-	{"command": "DEBUG", "summary": "A container for debugging commands", "group": "server"},
-	{"command": "DECR", "summary": "Decrement the integer value of a key by one", "group": "string"},
-	{"command": "DECRBY", "summary": "Decrement the integer value of a key by the given number", "group": "string"},
-	{"command": "DEL", "summary": "Delete a key", "group": "generic"},
-	{"command": "DISCARD", "summary": "Discard all commands issued after MULTI", "group": "transactions"},
-	{"command": "DUMP", "summary": "Return a serialized version of the value stored at the specified key.", "group": "generic"},
-	{"command": "ECHO", "summary": "Echo the given string", "group": "connection"},
-	{"command": "EVAL", "summary": "Execute a Lua script server side", "group": "scripting"},
-	{"command": "EVALSHA", "summary": "Execute a Lua script server side", "group": "scripting"},
-	{"command": "EVALSHA_RO", "summary": "Execute a read-only Lua script server side", "group": "scripting"},
-	{"command": "EVAL_RO", "summary": "Execute a read-only Lua script server side", "group": "scripting"},
-	{"command": "EXEC", "summary": "Execute all commands issued after MULTI", "group": "transactions"},
-	{"command": "EXISTS", "summary": "Determine if a key exists", "group": "generic"},
-	{"command": "EXPIRE", "summary": "Set a key's time to live in seconds", "group": "generic"},
-	{"command": "EXPIREAT", "summary": "Set the expiration for a key as a UNIX timestamp", "group": "generic"},
-	{"command": "EXPIRETIME", "summary": "Get the expiration Unix timestamp for a key", "group": "generic"},
-	{"command": "FAILOVER", "summary": "Start a coordinated failover between this server and one of its replicas.", "group": "server"},
-	{"command": "FCALL", "summary": "Invoke a function", "group": "scripting"},
-	{"command": "FCALL_RO", "summary": "Invoke a read-only function", "group": "scripting"},
-	{"command": "FLUSHALL", "summary": "Remove all keys from all databases", "group": "server"},
-	{"command": "FLUSHDB", "summary": "Remove all keys from the current database", "group": "server"},
-	{"command": "FUNCTION", "summary": "A container for function commands", "group": "scripting"},
-	{"command": "FUNCTION DELETE", "summary": "Delete a function by name", "group": "scripting"},
-	{"command": "FUNCTION DUMP", "summary": "Dump all functions into a serialized binary payload", "group": "scripting"},
-	{"command": "FUNCTION FLUSH", "summary": "Deleting all functions", "group": "scripting"},
-	{"command": "FUNCTION HELP", "summary": "Show helpful text about the different subcommands", "group": "scripting"},
-	{"command": "FUNCTION KILL", "summary": "Kill the function currently in execution.", "group": "scripting"},
-	{"command": "FUNCTION LIST", "summary": "List information about all the functions", "group": "scripting"},
-	{"command": "FUNCTION LOAD", "summary": "Create a function with the given arguments (name, code, description)", "group": "scripting"},
-	{"command": "FUNCTION RESTORE", "summary": "Restore all the functions on the given payload", "group": "scripting"},
-	{"command": "FUNCTION STATS", "summary": "Return information about the function currently running (name, description, duration)", "group": "scripting"},
-	{"command": "GEOADD", "summary": "Add one or more geospatial items in the geospatial index represented using a sorted set", "group": "geo"},
-	{"command": "GEODIST", "summary": "Returns the distance between two members of a geospatial index", "group": "geo"},
-	{"command": "GEOHASH", "summary": "Returns members of a geospatial index as standard geohash strings", "group": "geo"},
-	{"command": "GEOPOS", "summary": "Returns longitude and latitude of members of a geospatial index", "group": "geo"},
-	{"command": "GEORADIUS", "summary": "Query a sorted set representing a geospatial index to fetch members matching a given maximum distance from a point", "group": "geo"},
-	{"command": "GEORADIUSBYMEMBER", "summary": "Query a sorted set representing a geospatial index to fetch members matching a given maximum distance from a member", "group": "geo"},
-	{"command": "GEORADIUSBYMEMBER_RO", "summary": "A read-only variant for GEORADIUSBYMEMBER", "group": "geo"},
-	{"command": "GEORADIUS_RO", "summary": "A read-only variant for GEORADIUS", "group": "geo"},
-	{"command": "GEOSEARCH", "summary": "Query a sorted set representing a geospatial index to fetch members inside an area of a box or a circle.", "group": "geo"},
-	{"command": "GEOSEARCHSTORE", "summary": "Query a sorted set representing a geospatial index to fetch members inside an area of a box or a circle, and store the result in another key.", "group": "geo"},
-	{"command": "GET", "summary": "Get the value of a key", "group": "string"},
-	{"command": "GETBIT", "summary": "Returns the bit value at offset in the string value stored at key", "group": "bitmap"},
-	{"command": "GETDEL", "summary": "Get the value of a key and delete the key", "group": "string"},
-	{"command": "GETEX", "summary": "Get the value of a key and optionally set its expiration", "group": "string"},
-	{"command": "GETRANGE", "summary": "Get a substring of the string stored at a key", "group": "string"},
-	{"command": "GETSET", "summary": "Set the string value of a key and return its old value", "group": "string"},
-	{"command": "HDEL", "summary": "Delete one or more hash fields", "group": "hash"},
-	{"command": "HELLO", "summary": "Handshake with Redis", "group": "connection"},
-	{"command": "HEXISTS", "summary": "Determine if a hash field exists", "group": "hash"},
-	{"command": "HGET", "summary": "Get the value of a hash field", "group": "hash"},
-	{"command": "HGETALL", "summary": "Get all the fields and values in a hash", "group": "hash"},
-	{"command": "HINCRBY", "summary": "Increment the integer value of a hash field by the given number", "group": "hash"},
-	{"command": "HINCRBYFLOAT", "summary": "Increment the float value of a hash field by the given amount", "group": "hash"},
-	{"command": "HKEYS", "summary": "Get all the fields in a hash", "group": "hash"},
-	{"command": "HLEN", "summary": "Get the number of fields in a hash", "group": "hash"},
-	{"command": "HMGET", "summary": "Get the values of all the given hash fields", "group": "hash"},
-	{"command": "HMSET", "summary": "Set multiple hash fields to multiple values", "group": "hash"},
-	{"command": "HRANDFIELD", "summary": "Get one or multiple random fields from a hash", "group": "hash"},
-	{"command": "HSCAN", "summary": "Incrementally iterate hash fields and associated values", "group": "hash"},
-	{"command": "HSET", "summary": "Set the string value of a hash field", "group": "hash"},
-	{"command": "HSETNX", "summary": "Set the value of a hash field, only if the field does not exist", "group": "hash"},
-	{"command": "HSTRLEN", "summary": "Get the length of the value of a hash field", "group": "hash"},
-	{"command": "HVALS", "summary": "Get all the values in a hash", "group": "hash"},
-	{"command": "INCR", "summary": "Increment the integer value of a key by one", "group": "string"},
-	{"command": "INCRBY", "summary": "Increment the integer value of a key by the given amount", "group": "string"},
-	{"command": "INCRBYFLOAT", "summary": "Increment the float value of a key by the given amount", "group": "string"},
-	{"command": "INFO", "summary": "Get information and statistics about the server", "group": "server"},
-	{"command": "KEYS", "summary": "Find all keys matching the given pattern", "group": "generic"},
-	{"command": "LASTSAVE", "summary": "Get the UNIX time stamp of the last successful save to disk", "group": "server"},
-	{"command": "LATENCY", "summary": "A container for latency diagnostics commands", "group": "server"},
-	{"command": "LATENCY DOCTOR", "summary": "Return a human readable latency analysis report.", "group": "server"},
-	{"command": "LATENCY GRAPH", "summary": "Return a latency graph for the event.", "group": "server"},
-	{"command": "LATENCY HELP", "summary": "Show helpful text about the different subcommands.", "group": "server"},
-	{"command": "LATENCY HISTOGRAM", "summary": "Return the cumulative distribution of latencies of a subset of commands or all.", "group": "server"},
-	{"command": "LATENCY HISTORY", "summary": "Return timestamp-latency samples for the event.", "group": "server"},
-	{"command": "LATENCY LATEST", "summary": "Return the latest latency samples for all events.", "group": "server"},
-	{"command": "LATENCY RESET", "summary": "Reset latency data for one or more events.", "group": "server"},
-	{"command": "LCS", "summary": "Find longest common substring", "group": "string"},
-	{"command": "LINDEX", "summary": "Get an element from a list by its index", "group": "list"},
-	{"command": "LINSERT", "summary": "Insert an element before or after another element in a list", "group": "list"},
-	{"command": "LLEN", "summary": "Get the length of a list", "group": "list"},
-	{"command": "LMOVE", "summary": "Pop an element from a list, push it to another list and return it", "group": "list"},
-	{"command": "LMPOP", "summary": "Pop elements from a list", "group": "list"},
-	{"command": "LOLWUT", "summary": "Display some computer art and the Redis version", "group": "server"},
-	{"command": "LPOP", "summary": "Remove and get the first elements in a list", "group": "list"},
-	{"command": "LPOS", "summary": "Return the index of matching elements on a list", "group": "list"},
-	{"command": "LPUSH", "summary": "Prepend one or multiple elements to a list", "group": "list"},
-	{"command": "LPUSHX", "summary": "Prepend an element to a list, only if the list exists", "group": "list"},
-	{"command": "LRANGE", "summary": "Get a range of elements from a list", "group": "list"},
-	{"command": "LREM", "summary": "Remove elements from a list", "group": "list"},
-	{"command": "LSET", "summary": "Set the value of an element in a list by its index", "group": "list"},
-	{"command": "LTRIM", "summary": "Trim a list to the specified range", "group": "list"},
-	{"command": "MEMORY", "summary": "A container for memory diagnostics commands", "group": "server"},
-	{"command": "MEMORY DOCTOR", "summary": "Outputs memory problems report", "group": "server"},
-	{"command": "MEMORY HELP", "summary": "Show helpful text about the different subcommands", "group": "server"},
-	{"command": "MEMORY MALLOC-STATS", "summary": "Show allocator internal stats", "group": "server"},
-	{"command": "MEMORY PURGE", "summary": "Ask the allocator to release memory", "group": "server"},
-	{"command": "MEMORY STATS", "summary": "Show memory usage details", "group": "server"},
-	{"command": "MEMORY USAGE", "summary": "Estimate the memory usage of a key", "group": "server"},
-	{"command": "MGET", "summary": "Get the values of all the given keys", "group": "string"},
-	{"command": "MIGRATE", "summary": "Atomically transfer a key from a Redis instance to another one.", "group": "generic"},
-	{"command": "MODULE", "summary": "A container for module commands", "group": "server"},
-	{"command": "MODULE HELP", "summary": "Show helpful text about the different subcommands", "group": "server"},
-	{"command": "MODULE LIST", "summary": "List all modules loaded by the server", "group": "server"},
-	{"command": "MODULE LOAD", "summary": "Load a module", "group": "server"},
-	{"command": "MODULE LOADEX", "summary": "Load a module with extended parameters", "group": "server"},
-	{"command": "MODULE UNLOAD", "summary": "Unload a module", "group": "server"},
-	{"command": "MONITOR", "summary": "Listen for all requests received by the server in real time", "group": "server"},
-	{"command": "MOVE", "summary": "Move a key to another database", "group": "generic"},
-	{"command": "MSET", "summary": "Set multiple keys to multiple values", "group": "string"},
-	{"command": "MSETNX", "summary": "Set multiple keys to multiple values, only if none of the keys exist", "group": "string"},
-	{"command": "MULTI", "summary": "Mark the start of a transaction block", "group": "transactions"},
-	{"command": "OBJECT", "summary": "A container for object introspection commands", "group": "generic"},
-	{"command": "OBJECT ENCODING", "summary": "Inspect the internal encoding of a Redis object", "group": "generic"},
-	{"command": "OBJECT FREQ", "summary": "Get the logarithmic access frequency counter of a Redis object", "group": "generic"},
-	{"command": "OBJECT HELP", "summary": "Show helpful text about the different subcommands", "group": "generic"},
-	{"command": "OBJECT IDLETIME", "summary": "Get the time since a Redis object was last accessed", "group": "generic"},
-	{"command": "OBJECT REFCOUNT", "summary": "Get the number of references to the value of the key", "group": "generic"},
-	{"command": "PERSIST", "summary": "Remove the expiration from a key", "group": "generic"},
-	{"command": "PEXPIRE", "summary": "Set a key's time to live in milliseconds", "group": "generic"},
-	{"command": "PEXPIREAT", "summary": "Set the expiration for a key as a UNIX timestamp specified in milliseconds", "group": "generic"},
-	{"command": "PEXPIRETIME", "summary": "Get the expiration Unix timestamp for a key in milliseconds", "group": "generic"},
-	{"command": "PFADD", "summary": "Adds the specified elements to the specified HyperLogLog.", "group": "hyperloglog"},
-	{"command": "PFCOUNT", "summary": "Return the approximated cardinality of the set(s) observed by the HyperLogLog at key(s).", "group": "hyperloglog"},
-	{"command": "PFDEBUG", "summary": "Internal commands for debugging HyperLogLog values", "group": "hyperloglog"},
-	{"command": "PFMERGE", "summary": "Merge N different HyperLogLogs into a single one.", "group": "hyperloglog"},
-	{"command": "PFSELFTEST", "summary": "An internal command for testing HyperLogLog values", "group": "hyperloglog"},
-	{"command": "PING", "summary": "Ping the server", "group": "connection"},
-	{"command": "PSETEX", "summary": "Set the value and expiration in milliseconds of a key", "group": "string"},
-	{"command": "PSUBSCRIBE", "summary": "Listen for messages published to channels matching the given patterns", "group": "pubsub"},
-	{"command": "PSYNC", "summary": "Internal command used for replication", "group": "server"},
-	{"command": "PTTL", "summary": "Get the time to live for a key in milliseconds", "group": "generic"},
-	{"command": "PUBLISH", "summary": "Post a message to a channel", "group": "pubsub"},
-	{"command": "PUBSUB", "summary": "A container for Pub/Sub commands", "group": "pubsub"},
-	{"command": "PUBSUB CHANNELS", "summary": "List active channels", "group": "pubsub"},
-	{"command": "PUBSUB HELP", "summary": "Show helpful text about the different subcommands", "group": "pubsub"},
-	{"command": "PUBSUB NUMPAT", "summary": "Get the count of unique patterns pattern subscriptions", "group": "pubsub"},
-	{"command": "PUBSUB NUMSUB", "summary": "Get the count of subscribers for channels", "group": "pubsub"},
-	{"command": "PUBSUB SHARDCHANNELS", "summary": "List active shard channels", "group": "pubsub"},
-	{"command": "PUBSUB SHARDNUMSUB", "summary": "Get the count of subscribers for shard channels", "group": "pubsub"},
-	{"command": "PUNSUBSCRIBE", "summary": "Stop listening for messages posted to channels matching the given patterns", "group": "pubsub"},
-	{"command": "QUIT", "summary": "Close the connection", "group": "connection"},
-	{"command": "RANDOMKEY", "summary": "Return a random key from the keyspace", "group": "generic"},
-	{"command": "READONLY", "summary": "Enables read queries for a connection to a cluster replica node", "group": "cluster"},
-	{"command": "READWRITE", "summary": "Disables read queries for a connection to a cluster replica node", "group": "cluster"},
-	{"command": "RENAME", "summary": "Rename a key", "group": "generic"},
-	{"command": "RENAMENX", "summary": "Rename a key, only if the new key does not exist", "group": "generic"},
-	{"command": "REPLCONF", "summary": "An internal command for configuring the replication stream", "group": "server"},
-	{"command": "REPLICAOF", "summary": "Make the server a replica of another instance, or promote it as master.", "group": "server"},
-	{"command": "RESET", "summary": "Reset the connection", "group": "connection"},
-	{"command": "RESTORE", "summary": "Create a key using the provided serialized value, previously obtained using DUMP.", "group": "generic"},
-	{"command": "RESTORE-ASKING", "summary": "An internal command for migrating keys in a cluster", "group": "server"},
-	{"command": "ROLE", "summary": "Return the role of the instance in the context of replication", "group": "server"},
-	{"command": "RPOP", "summary": "Remove and get the last elements in a list", "group": "list"},
-	{"command": "RPOPLPUSH", "summary": "Remove the last element in a list, prepend it to another list and return it", "group": "list"},
-	{"command": "RPUSH", "summary": "Append one or multiple elements to a list", "group": "list"},
-	{"command": "RPUSHX", "summary": "Append an element to a list, only if the list exists", "group": "list"},
-	{"command": "SADD", "summary": "Add one or more members to a set", "group": "set"},
-	{"command": "SAVE", "summary": "Synchronously save the dataset to disk", "group": "server"},
-	{"command": "SCAN", "summary": "Incrementally iterate the keys space", "group": "generic"},
-	{"command": "SCARD", "summary": "Get the number of members in a set", "group": "set"},
-	{"command": "SCRIPT", "summary": "A container for Lua scripts management commands", "group": "scripting"},
-	{"command": "SCRIPT DEBUG", "summary": "Set the debug mode for executed scripts.", "group": "scripting"},
-	{"command": "SCRIPT EXISTS", "summary": "Check existence of scripts in the script cache.", "group": "scripting"},
-	{"command": "SCRIPT FLUSH", "summary": "Remove all the scripts from the script cache.", "group": "scripting"},
-	{"command": "SCRIPT HELP", "summary": "Show helpful text about the different subcommands", "group": "scripting"},
-	{"command": "SCRIPT KILL", "summary": "Kill the script currently in execution.", "group": "scripting"},
-	{"command": "SCRIPT LOAD", "summary": "Load the specified Lua script into the script cache.", "group": "scripting"},
-	{"command": "SDIFF", "summary": "Subtract multiple sets", "group": "set"},
-	{"command": "SDIFFSTORE", "summary": "Subtract multiple sets and store the resulting set in a key", "group": "set"},
-	{"command": "SELECT", "summary": "Change the selected database for the current connection", "group": "connection"},
-	{"command": "SET", "summary": "Set the string value of a key", "group": "string"},
-	{"command": "SETBIT", "summary": "Sets or clears the bit at offset in the string value stored at key", "group": "bitmap"},
-	{"command": "SETEX", "summary": "Set the value and expiration of a key", "group": "string"},
-	{"command": "SETNX", "summary": "Set the value of a key, only if the key does not exist", "group": "string"},
-	{"command": "SETRANGE", "summary": "Overwrite part of a string at key starting at the specified offset", "group": "string"},
-	{"command": "SHUTDOWN", "summary": "Synchronously save the dataset to disk and then shut down the server", "group": "server"},
-	{"command": "SINTER", "summary": "Intersect multiple sets", "group": "set"},
-	{"command": "SINTERCARD", "summary": "Intersect multiple sets and return the cardinality of the result", "group": "set"},
-	{"command": "SINTERSTORE", "summary": "Intersect multiple sets and store the resulting set in a key", "group": "set"},
-	{"command": "SISMEMBER", "summary": "Determine if a given value is a member of a set", "group": "set"},
-	{"command": "SLAVEOF", "summary": "Make the server a replica of another instance, or promote it as master.", "group": "server"},
-	{"command": "SLOWLOG", "summary": "A container for slow log commands", "group": "server"},
-	{"command": "SLOWLOG GET", "summary": "Get the slow log's entries", "group": "server"},
-	{"command": "SLOWLOG HELP", "summary": "Show helpful text about the different subcommands", "group": "server"},
-	{"command": "SLOWLOG LEN", "summary": "Get the slow log's length", "group": "server"},
-	{"command": "SLOWLOG RESET", "summary": "Clear all entries from the slow log", "group": "server"},
-	{"command": "SMEMBERS", "summary": "Get all the members in a set", "group": "set"},
-	{"command": "SMISMEMBER", "summary": "Returns the membership associated with the given elements for a set", "group": "set"},
-	{"command": "SMOVE", "summary": "Move a member from one set to another", "group": "set"},
-	{"command": "SORT", "summary": "Sort the elements in a list, set or sorted set", "group": "generic"},
-	{"command": "SORT_RO", "summary": "Sort the elements in a list, set or sorted set. Read-only variant of SORT.", "group": "generic"},
-	{"command": "SPOP", "summary": "Remove and return one or multiple random members from a set", "group": "set"},
-	{"command": "SPUBLISH", "summary": "Post a message to a shard channel", "group": "pubsub"},
-	{"command": "SRANDMEMBER", "summary": "Get one or multiple random members from a set", "group": "set"},
-	{"command": "SREM", "summary": "Remove one or more members from a set", "group": "set"},
-	{"command": "SSCAN", "summary": "Incrementally iterate Set elements", "group": "set"},
-	{"command": "SSUBSCRIBE", "summary": "Listen for messages published to the given shard channels", "group": "pubsub"},
-	{"command": "STRLEN", "summary": "Get the length of the value stored in a key", "group": "string"},
-	{"command": "SUBSCRIBE", "summary": "Listen for messages published to the given channels", "group": "pubsub"},
-	{"command": "SUBSTR", "summary": "Get a substring of the string stored at a key", "group": "string"},
-	{"command": "SUNION", "summary": "Add multiple sets", "group": "set"},
-	{"command": "SUNIONSTORE", "summary": "Add multiple sets and store the resulting set in a key", "group": "set"},
-	{"command": "SUNSUBSCRIBE", "summary": "Stop listening for messages posted to the given shard channels", "group": "pubsub"},
-	{"command": "SWAPDB", "summary": "Swaps two Redis databases", "group": "server"},
-	{"command": "SYNC", "summary": "Internal command used for replication", "group": "server"},
-	{"command": "TIME", "summary": "Return the current server time", "group": "server"},
-	{"command": "TOUCH", "summary": "Alters the last access time of a key(s). Returns the number of existing keys specified.", "group": "generic"},
-	{"command": "TTL", "summary": "Get the time to live for a key in seconds", "group": "generic"},
-	{"command": "TYPE", "summary": "Determine the type stored at key", "group": "generic"},
-	{"command": "UNLINK", "summary": "Delete a key asynchronously in another thread. Otherwise it is just as DEL, but non blocking.", "group": "generic"},
-	{"command": "UNSUBSCRIBE", "summary": "Stop listening for messages posted to the given channels", "group": "pubsub"},
-	{"command": "UNWATCH", "summary": "Forget about all watched keys", "group": "transactions"},
-	{"command": "WAIT", "summary": "Wait for the synchronous replication of all the write commands sent in the context of the current connection", "group": "generic"},
-	{"command": "WATCH", "summary": "Watch the given keys to determine execution of the MULTI/EXEC block", "group": "transactions"},
-	{"command": "XACK", "summary": "Marks a pending message as correctly processed, effectively removing it from the pending entries list of the consumer group. Return value of the command is the number of messages successfully acknowledged, that is, the IDs we were actually able to resolve in the PEL.", "group": "stream"},
-	{"command": "XADD", "summary": "Appends a new entry to a stream", "group": "stream"},
-	{"command": "XAUTOCLAIM", "summary": "Changes (or acquires) ownership of messages in a consumer group, as if the messages were delivered to the specified consumer.", "group": "stream"},
-	{"command": "XCLAIM", "summary": "Changes (or acquires) ownership of a message in a consumer group, as if the message was delivered to the specified consumer.", "group": "stream"},
-	{"command": "XDEL", "summary": "Removes the specified entries from the stream. Returns the number of items actually deleted, that may be different from the number of IDs passed in case certain IDs do not exist.", "group": "stream"},
-	{"command": "XGROUP", "summary": "A container for consumer groups commands", "group": "stream"},
-	{"command": "XGROUP CREATE", "summary": "Create a consumer group.", "group": "stream"},
-	{"command": "XGROUP CREATECONSUMER", "summary": "Create a consumer in a consumer group.", "group": "stream"},
-	{"command": "XGROUP DELCONSUMER", "summary": "Delete a consumer from a consumer group.", "group": "stream"},
-	{"command": "XGROUP DESTROY", "summary": "Destroy a consumer group.", "group": "stream"},
-	{"command": "XGROUP HELP", "summary": "Show helpful text about the different subcommands", "group": "stream"},
-	{"command": "XGROUP SETID", "summary": "Set a consumer group to an arbitrary last delivered ID value.", "group": "stream"},
-	{"command": "XINFO", "summary": "A container for stream introspection commands", "group": "stream"},
-	{"command": "XINFO CONSUMERS", "summary": "List the consumers in a consumer group", "group": "stream"},
-	{"command": "XINFO GROUPS", "summary": "List the consumer groups of a stream", "group": "stream"},
-	{"command": "XINFO HELP", "summary": "Show helpful text about the different subcommands", "group": "stream"},
-	{"command": "XINFO STREAM", "summary": "Get information about a stream", "group": "stream"},
-	{"command": "XLEN", "summary": "Return the number of entries in a stream", "group": "stream"},
-	{"command": "XPENDING", "summary": "Return information and entries from a stream consumer group pending entries list, that are messages fetched but never acknowledged.", "group": "stream"},
-	{"command": "XRANGE", "summary": "Return a range of elements in a stream, with IDs matching the specified IDs interval", "group": "stream"},
-	{"command": "XREAD", "summary": "Return never seen elements in multiple streams, with IDs greater than the ones reported by the caller for each stream. Can block.", "group": "stream"},
-	{"command": "XREADGROUP", "summary": "Return new entries from a stream using a consumer group, or access the history of the pending entries for a given consumer. Can block.", "group": "stream"},
-	{"command": "XREVRANGE", "summary": "Return a range of elements in a stream, with IDs matching the specified IDs interval, in reverse order (from greater to smaller IDs) compared to XRANGE", "group": "stream"},
-	{"command": "XSETID", "summary": "An internal command for replicating stream values", "group": "stream"},
-	{"command": "XTRIM", "summary": "Trims the stream to (approximately if '~' is passed) a certain size", "group": "stream"},
-	{"command": "ZADD", "summary": "Add one or more members to a sorted set, or update its score if it already exists", "group": "sorted-set"},
-	{"command": "ZCARD", "summary": "Get the number of members in a sorted set", "group": "sorted-set"},
-	{"command": "ZCOUNT", "summary": "Count the members in a sorted set with scores within the given values", "group": "sorted-set"},
-	{"command": "ZDIFF", "summary": "Subtract multiple sorted sets", "group": "sorted-set"},
-	{"command": "ZDIFFSTORE", "summary": "Subtract multiple sorted sets and store the resulting sorted set in a new key", "group": "sorted-set"},
-	{"command": "ZINCRBY", "summary": "Increment the score of a member in a sorted set", "group": "sorted-set"},
-	{"command": "ZINTER", "summary": "Intersect multiple sorted sets", "group": "sorted-set"},
-	{"command": "ZINTERCARD", "summary": "Intersect multiple sorted sets and return the cardinality of the result", "group": "sorted-set"},
-	{"command": "ZINTERSTORE", "summary": "Intersect multiple sorted sets and store the resulting sorted set in a new key", "group": "sorted-set"},
-	{"command": "ZLEXCOUNT", "summary": "Count the number of members in a sorted set between a given lexicographical range", "group": "sorted-set"},
-	{"command": "ZMPOP", "summary": "Remove and return members with scores in a sorted set", "group": "sorted-set"},
-	{"command": "ZMSCORE", "summary": "Get the score associated with the given members in a sorted set", "group": "sorted-set"},
-	{"command": "ZPOPMAX", "summary": "Remove and return members with the highest scores in a sorted set", "group": "sorted-set"},
-	{"command": "ZPOPMIN", "summary": "Remove and return members with the lowest scores in a sorted set", "group": "sorted-set"},
-	{"command": "ZRANDMEMBER", "summary": "Get one or multiple random elements from a sorted set", "group": "sorted-set"},
-	{"command": "ZRANGE", "summary": "Return a range of members in a sorted set", "group": "sorted-set"},
-	{"command": "ZRANGEBYLEX", "summary": "Return a range of members in a sorted set, by lexicographical range", "group": "sorted-set"},
-	{"command": "ZRANGEBYSCORE", "summary": "Return a range of members in a sorted set, by score", "group": "sorted-set"},
-	{"command": "ZRANGESTORE", "summary": "Store a range of members from sorted set into another key", "group": "sorted-set"},
-	{"command": "ZRANK", "summary": "Determine the index of a member in a sorted set", "group": "sorted-set"},
-	{"command": "ZREM", "summary": "Remove one or more members from a sorted set", "group": "sorted-set"},
-	{"command": "ZREMRANGEBYLEX", "summary": "Remove all members in a sorted set between the given lexicographical range", "group": "sorted-set"},
-	{"command": "ZREMRANGEBYRANK", "summary": "Remove all members in a sorted set within the given indexes", "group": "sorted-set"},
-	{"command": "ZREMRANGEBYSCORE", "summary": "Remove all members in a sorted set within the given scores", "group": "sorted-set"},
-	{"command": "ZREVRANGE", "summary": "Return a range of members in a sorted set, by index, with scores ordered from high to low", "group": "sorted-set"},
-	{"command": "ZREVRANGEBYLEX", "summary": "Return a range of members in a sorted set, by lexicographical range, ordered from higher to lower strings.", "group": "sorted-set"},
-	{"command": "ZREVRANGEBYSCORE", "summary": "Return a range of members in a sorted set, by score, with scores ordered from high to low", "group": "sorted-set"},
-	{"command": "ZREVRANK", "summary": "Determine the index of a member in a sorted set, with scores ordered from high to low", "group": "sorted-set"},
-	{"command": "ZSCAN", "summary": "Incrementally iterate sorted sets elements and associated scores", "group": "sorted-set"},
-	{"command": "ZSCORE", "summary": "Get the score associated with the given member in a sorted set", "group": "sorted-set"},
-	{"command": "ZUNION", "summary": "Add multiple sorted sets", "group": "sorted-set"},
-	{"command": "ZUNIONSTORE", "summary": "Add multiple sorted sets and store the resulting sorted set in a new key", "group": "sorted-set"},
+// convert strings that need to stay "as one for tokenising"
+func escapeForJSON(s string) string {
+	re := regexp.MustCompile(`([,.<>{}\[\]"':;!@#$%^&*()\-+=~ ])`)
+	return re.ReplaceAllString(s, `\\$1`)
+}
+
+// initialise the test data we use throughout
+func createJSONTestData() {
+
+	fmt.Println("Generating JSON Data...")
+
+	csvData := strings.NewReader(customerData)
+	csvReader := csv.NewReader(csvData)
+	t, err := template.New("customer").Parse(customerJSON)
+	Expect(err).NotTo((HaveOccurred()))
+
+	for {
+		row, err := csvReader.Read()
+		if err == io.EOF {
+			break
+		}
+		row[2] = escapeForJSON(row[2])
+		row[3] = escapeForJSON(row[3])
+		row[5] = escapeForJSON(row[5])
+		Expect(err).NotTo(HaveOccurred())
+		var js bytes.Buffer
+		Expect(t.ExecuteTemplate(&js, "customer", row)).NotTo(HaveOccurred())
+		Expect(client.JSONSet(ctx, fmt.Sprintf("customer:%s", row[4]), "$", js.String()).Err()).NotTo(HaveOccurred())
+	}
+
+	csvData = strings.NewReader(commandData)
+	csvReader = csv.NewReader(csvData)
+	t, err = template.New("command").Parse(commandJSON)
+	Expect(err).NotTo((HaveOccurred()))
+
+	for {
+		row, err := csvReader.Read()
+		if err == io.EOF {
+			break
+		}
+		Expect(err).NotTo(HaveOccurred())
+		var js bytes.Buffer
+		Expect(t.ExecuteTemplate(&js, "command", row)).NotTo(HaveOccurred())
+		Expect(client.JSONSet(ctx, fmt.Sprintf("cmd:%s", row[0]), "$", js.String()).Err()).NotTo(HaveOccurred())
+	}
+}
+
+// initialise the test data we use throughout
+func createHashTestData() {
+
+	fmt.Println("Generating Hash Data...")
+
+	csvData := strings.NewReader(customerData)
+	csvReader := csv.NewReader(csvData)
+
+	for {
+		row, err := csvReader.Read()
+		if err == io.EOF {
+			break
+		}
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(client.HSet(ctx, fmt.Sprintf("haccount:%s", row[4]),
+			"customer", row[0]+" "+row[1],
+			"email", escapeForHash(row[2]),
+			"ip", escapeForHash(row[3]),
+			"account_id", row[4],
+			"account_owner", row[5],
+			"balance", row[6],
+		).Err()).NotTo(HaveOccurred())
+
+	}
+
+	csvData = strings.NewReader(commandData)
+	csvReader = csv.NewReader(csvData)
+
+	for {
+		row, err := csvReader.Read()
+		if err == io.EOF {
+			break
+		}
+		Expect(client.HSet(ctx, fmt.Sprintf("hcommand:%s", strings.Replace(row[0], " ", "_", -1)),
+			"command", row[0],
+			"group", row[1],
+			"summary", row[2]).Err()).NotTo(HaveOccurred())
+	}
+}
+
+func createHashIndexes() {
+	fmt.Println("Generating Hash Indexes...")
+	Expect(client.FTCreateIndex(ctx, "hcustomers", grstack.NewIndexBuilder().
+		Prefix("haccount:").
+		Schema(grstack.TagAttribute{
+			Name:     "account_id",
+			Alias:    "id",
+			Sortable: true}).Schema(grstack.TextAttribute{Name: "customer",
+		Sortable: true}).Schema(grstack.TextAttribute{
+		Name:     "email",
+		Sortable: true}).Schema(grstack.TagAttribute{
+		Name:     "account_owner",
+		Alias:    "owner",
+		Sortable: true}).Schema(grstack.NumericAttribute{
+		Name:     "balance",
+		Sortable: true,
+	}).Options()).Err()).NotTo(HaveOccurred())
+
+	Expect(client.FTCreateIndex(ctx, "hdocs", grstack.NewIndexBuilder().
+		Prefix("hcommand:").
+		Schema(grstack.TagAttribute{
+			Name:     "group",
+			Sortable: true}).Schema(grstack.TextAttribute{
+		Name:     "command",
+		Sortable: true}).Options()).Err()).NotTo(HaveOccurred())
+
+}
+
+func createJSONIndexes() {
+
+	fmt.Println("Generating JSON Indexes...")
+	Expect(client.FTCreateIndex(ctx, "jcustomers", grstack.NewIndexBuilder().
+		Prefix("customer:").
+		Schema(grstack.TagAttribute{
+			Name:     "account_id",
+			Alias:    "id",
+			Sortable: true}).Schema(grstack.TextAttribute{Name: "customer",
+		Sortable: true}).Schema(grstack.TextAttribute{
+		Name:     "email",
+		Sortable: true}).Schema(grstack.TagAttribute{
+		Name:     "account_owner",
+		Alias:    "owner",
+		Sortable: true}).Schema(grstack.NumericAttribute{
+		Name:     "balance",
+		Sortable: true,
+	}).Options()).Err()).NotTo(HaveOccurred())
+
+	Expect(client.FTCreateIndex(ctx, "jdocs", grstack.NewIndexBuilder().
+		Prefix("command:").
+		Schema(grstack.TagAttribute{
+			Name:     "group",
+			Sortable: true}).Schema(grstack.TextAttribute{
+		Name:     "command",
+		Sortable: true}).Options()).Err()).NotTo(HaveOccurred())
+
 }
 
 func TestFtsearch(t *testing.T) {
@@ -419,60 +191,14 @@ func TestFtsearch(t *testing.T) {
 	RunSpecs(t, "Ftsearch Suite")
 }
 
-// initialise the test data we use throughout
-func createTestData() {
-	Expect(client.FlushAll(ctx).Err()).NotTo(HaveOccurred())
-
-	for _, row := range testData {
-		Expect(client.HSet(ctx, fmt.Sprintf("account:%s", row[4]),
-			"customer", row[0]+" "+row[1],
-			"email", row[2],
-			"ip", row[3],
-			"account_id", row[4],
-			"account_owner", row[5],
-			"balance", row[6],
-		).Err()).NotTo(HaveOccurred())
-	}
-
-	for _, val := range testText {
-		Expect(client.HSet(ctx, fmt.Sprintf("command:%s", strings.Replace(val["command"], " ", "_", -1)),
-			"command", val["command"],
-			"group", val["group"],
-			"summary", val["summary"]).Err()).NotTo(HaveOccurred())
-	}
-
-	Expect(client.FTCreateIndex(ctx, "customers", grstack.NewIndexOptions().
-		AddPrefix("account:").
-		AddSchemaAttribute(grstack.TagAttribute{
-			Name:     "account_id",
-			Alias:    "id",
-			Sortable: true}).AddSchemaAttribute(grstack.TextAttribute{
-		Name:     "customer",
-		Sortable: true}).AddSchemaAttribute(grstack.TextAttribute{
-		Name:     "email",
-		Sortable: true}).AddSchemaAttribute(grstack.TagAttribute{
-		Name:     "account_owner",
-		Alias:    "owner",
-		Sortable: true}).AddSchemaAttribute(grstack.NumericAttribute{
-		Name:     "balance",
-		Sortable: true,
-	})).Err()).NotTo(HaveOccurred())
-
-	Expect(client.FTCreateIndex(ctx, "docs", grstack.NewIndexOptions().
-		AddPrefix("command:").
-		AddSchemaAttribute(grstack.TagAttribute{
-			Name:     "group",
-			Sortable: true}).AddSchemaAttribute(grstack.TextAttribute{
-		Name:     "command",
-		Sortable: true})).Err()).NotTo(HaveOccurred())
-
-}
-
 var _ = BeforeSuite(func() {
 	client = grstack.NewClient(&redis.Options{})
 	Expect(client.Ping(ctx).Err()).NotTo(HaveOccurred())
 	Expect(client.FlushAll(ctx).Err()).NotTo(HaveOccurred())
-	createTestData()
+	createHashTestData()
+	createHashIndexes()
+	createJSONTestData()
+	// createJSONIndexes()
 	time.Sleep(time.Second * 5)
 })
 
