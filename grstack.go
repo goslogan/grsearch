@@ -1,3 +1,8 @@
+// Package grstack is an extension to [github.com/redis/go-redis], implementing support for
+// [RedisJSON] and [RediSearch]. It attempts to follow the syntactic style of go-redis as closely as possible.
+//
+// [RediSearch]: https://redis.io/docs/stack/search/
+// [RedisJSON]: https://redis.io/docs/stack/json/
 package grstack
 
 import (
@@ -6,6 +11,8 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// Client represents the wrapped go-redis client. New clients should
+// be created using [NewClient]
 type Client struct {
 	redis.Client
 	cmdable
@@ -13,7 +20,8 @@ type Client struct {
 
 type cmdable func(ctx context.Context, cmd redis.Cmder) error
 
-// NewClient returns a new search client
+// NewClient returns a new search client using the same options as the standard
+// go-redis client.
 func NewClient(options *redis.Options) *Client {
 	client := &Client{Client: *redis.NewClient(options)}
 	client.cmdable = client.Process

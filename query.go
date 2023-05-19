@@ -57,7 +57,6 @@ const (
 	SortDesc                 = "DESC"
 	SortNone                 = "" // SortNone is used to indicate that no sorting is required if you want be explicit
 	defaultDialect           = 2
-	defaultTimeout           = time.Duration(-999)
 )
 
 type QueryResult interface {
@@ -87,7 +86,6 @@ func NewQueryOptions() *QueryOptions {
 		Slop:    noSlop,
 		SortBy:  SortAsc,
 		Dialect: defaultDialect,
-		Timeout: defaultTimeout,
 		Params:  map[string]interface{}{},
 	}
 }
@@ -128,7 +126,7 @@ func (q *QueryOptions) serialize() []interface{} {
 		args = internal.AppendStringArg(args, "slop", fmt.Sprintf("%d", q.Slop))
 	}
 
-	if q.Timeout != defaultTimeout {
+	if q.Timeout != 0 {
 		args = internal.AppendStringArg(args, "timeout", fmt.Sprintf("%d", q.Timeout.Milliseconds()))
 	}
 	args = q.appendFlagArg(args, q.InOrder, "inorder")

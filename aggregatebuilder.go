@@ -2,7 +2,7 @@ package grstack
 
 import "time"
 
-type AggregateBuilder struct {
+type AggregateOptionsBuilder struct {
 	opts AggregateOptions
 }
 
@@ -10,62 +10,62 @@ type GroupByBuilder struct {
 	group AggregateGroupBy
 }
 
-// NewAggregateBuilder creats a new fluid builder for aggregates
-func NewAggregateBuilder() *AggregateBuilder {
-	return &AggregateBuilder{
+// NewAggregateOptionsBuilder creats a new fluid builder for aggregates
+func NewAggregateOptionsBuilder() *AggregateOptionsBuilder {
+	return &AggregateOptionsBuilder{
 		opts: *NewAggregateOptions(),
 	}
 }
 
 // Options returns the options struct built with the builder
-func (a *AggregateBuilder) Options() *AggregateOptions {
+func (a *AggregateOptionsBuilder) Options() *AggregateOptions {
 	return &a.opts
 }
 
 // Dialect sets the dialect option for the aggregate. It is NOT checked.
-func (a *AggregateBuilder) Dialect(version uint8) *AggregateBuilder {
+func (a *AggregateOptionsBuilder) Dialect(version uint8) *AggregateOptionsBuilder {
 	a.opts.Dialect = version
 	return a
 }
 
 // Timeout sets the timeout for the aggregate, overriding the default
-func (a *AggregateBuilder) Timeout(timeout time.Duration) *AggregateBuilder {
+func (a *AggregateOptionsBuilder) Timeout(timeout time.Duration) *AggregateOptionsBuilder {
 	a.opts.Timeout = timeout
 	return a
 }
 
 // Param sets the value of a aggregate parameter.
-func (a *AggregateBuilder) Param(name string, value interface{}) *AggregateBuilder {
+func (a *AggregateOptionsBuilder) Param(name string, value interface{}) *AggregateOptionsBuilder {
 	a.opts.Params[name] = value
 	return a
 }
 
 // Params sets all current parameters
-func (a *AggregateBuilder) Params(params map[string]interface{}) *AggregateBuilder {
+func (a *AggregateOptionsBuilder) Params(params map[string]interface{}) *AggregateOptionsBuilder {
 	a.opts.Params = params
 	return a
 }
 
 // Verbatim sets the verbatim flag, disabling stemming
-func (a *AggregateBuilder) Verbatim() *AggregateBuilder {
+func (a *AggregateOptionsBuilder) Verbatim() *AggregateOptionsBuilder {
 	a.opts.Verbatim = true
 	return a
 }
 
 // Limit sets the result limit
-func (a *AggregateBuilder) Limit(offset, num int64) *AggregateBuilder {
+func (a *AggregateOptionsBuilder) Limit(offset, num int64) *AggregateOptionsBuilder {
 	a.opts.Limit = &Limit{Offset: offset, Num: num}
 	return a
 }
 
 // Filter adds a result filter
-func (a *AggregateBuilder) Filter(filter string) *AggregateBuilder {
+func (a *AggregateOptionsBuilder) Filter(filter string) *AggregateOptionsBuilder {
 	a.opts.Filter = filter
 	return a
 }
 
 // Apply appends a transform to the apply list
-func (a *AggregateBuilder) Apply(expression, name string) *AggregateBuilder {
+func (a *AggregateOptionsBuilder) Apply(expression, name string) *AggregateOptionsBuilder {
 	a.opts.Apply = append(a.opts.Apply, AggregateApply{
 		Expression: expression,
 		As:         name,
@@ -74,7 +74,7 @@ func (a *AggregateBuilder) Apply(expression, name string) *AggregateBuilder {
 }
 
 // WithCursor creates a cursor for the aggregate to scan parts of the result
-func (a *AggregateBuilder) Cursor(count uint64, timeout time.Duration) *AggregateBuilder {
+func (a *AggregateOptionsBuilder) Cursor(count uint64, timeout time.Duration) *AggregateOptionsBuilder {
 	a.opts.Cursor = &AggregateCursor{
 		Count:   count,
 		MaxIdle: timeout,
@@ -84,20 +84,20 @@ func (a *AggregateBuilder) Cursor(count uint64, timeout time.Duration) *Aggregat
 
 // Load adds a field to the load list for the aggregate. The alias can be the
 // empty string.
-func (a *AggregateBuilder) Load(name string, as string) *AggregateBuilder {
+func (a *AggregateOptionsBuilder) Load(name string, as string) *AggregateOptionsBuilder {
 	l := AggregateLoad{Name: name, As: as}
 	a.opts.Load = append(a.opts.Load, l)
 	return a
 }
 
 // LoadAll sets the load list for this aggregate to "LOAD *".
-func (a *AggregateBuilder) LoadAll() *AggregateBuilder {
+func (a *AggregateOptionsBuilder) LoadAll() *AggregateOptionsBuilder {
 	a.opts.Load = []AggregateLoad{LoadAll}
 	return a
 }
 
 // SortBy adds a sorting key to this aggregate
-func (a *AggregateBuilder) SortBy(property, order string) *AggregateBuilder {
+func (a *AggregateOptionsBuilder) SortBy(property, order string) *AggregateOptionsBuilder {
 	if a.opts.SortBy == nil {
 		a.opts.SortBy = &AggregateSort{}
 	}
@@ -111,7 +111,7 @@ func (a *AggregateBuilder) SortBy(property, order string) *AggregateBuilder {
 
 // SortByMax sets the MAX limit on an aggregate sort key. This will be
 // ignored if not sort keys have been supplied.
-func (a *AggregateBuilder) SortByMax(max int64) *AggregateBuilder {
+func (a *AggregateOptionsBuilder) SortByMax(max int64) *AggregateOptionsBuilder {
 	if a.opts.SortBy == nil {
 		a.opts.SortBy = &AggregateSort{}
 	}
@@ -120,7 +120,7 @@ func (a *AggregateBuilder) SortByMax(max int64) *AggregateBuilder {
 }
 
 // GroupBy adds a new group by statement (constructed with a GroupByBuilder)
-func (a *AggregateBuilder) GroupBy(g AggregateGroupBy) *AggregateBuilder {
+func (a *AggregateOptionsBuilder) GroupBy(g AggregateGroupBy) *AggregateOptionsBuilder {
 	a.opts.GroupBy = append(a.opts.GroupBy, g)
 	return a
 }

@@ -7,14 +7,15 @@ import (
 	"github.com/goslogan/grstack/internal"
 )
 
-// aggregate.go contains functionality used to implement FT.AGGREGATE
-
+// AggregateOptions represents the options that can be passed to [FT.AGGREGATE].
+// This can be built by calling the [NewAggregateOptions] function or via [AggregateOptionsBuilder.Options]
+// using the Builder API.
 type AggregateOptions struct {
-	Verbatim bool
-	Load     []AggregateLoad
-	Timeout  time.Duration
-	GroupBy  []AggregateGroupBy
-	SortBy   *AggregateSort
+	Verbatim bool               // Set to true if stemming should not be used
+	Load     []AggregateLoad    // Values for the LOAD subcommand; use the [LoadAll] variable to represent "LOAD *"
+	Timeout  time.Duration      // Sets the query timeout. If zero, no TIMEOUT subcommmand is used
+	GroupBy  []AggregateGroupBy // GroupBy is an array of GROUP BY subcommands
+	SortBy   *AggregateSort     // SortBy represents the sort keys for the aggregate
 	Apply    []AggregateApply
 	Limit    *Limit
 	Filter   string
@@ -23,6 +24,7 @@ type AggregateOptions struct {
 	Dialect  uint8
 }
 
+// AggregateGroupBy represents a single GROUPBY statement in a
 type AggregateGroupBy struct {
 	Properties []string
 	Reducers   []AggregateReducer
