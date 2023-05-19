@@ -268,6 +268,11 @@ func (ql *Limit) serialize() []interface{} {
 	}
 }
 
+// Limit also needs to implement AggregateStep
+func (ql *Limit) serializeStep() []interface{} {
+	return ql.serialize()
+}
+
 /********************************************************************
 Functions and structs used to set up summarization and highlighting.
 ********************************************************************/

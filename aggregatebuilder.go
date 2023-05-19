@@ -54,19 +54,19 @@ func (a *AggregateOptionsBuilder) Verbatim() *AggregateOptionsBuilder {
 
 // Limit sets the result limit
 func (a *AggregateOptionsBuilder) Limit(offset, num int64) *AggregateOptionsBuilder {
-	a.opts.Limit = &Limit{Offset: offset, Num: num}
+	a.opts.Steps = append(a.opts.Steps, &Limit{Offset: offset, Num: num})
 	return a
 }
 
 // Filter adds a result filter
 func (a *AggregateOptionsBuilder) Filter(filter string) *AggregateOptionsBuilder {
-	a.opts.Filter = filter
+	a.opts.Steps = append(a.opts.Steps, AggregateFilter(filter))
 	return a
 }
 
 // Apply appends a transform to the apply list
 func (a *AggregateOptionsBuilder) Apply(expression, name string) *AggregateOptionsBuilder {
-	a.opts.Apply = append(a.opts.Apply, AggregateApply{
+	a.opts.Steps = append(a.opts.Steps, &AggregateApply{
 		Expression: expression,
 		As:         name,
 	})
@@ -96,14 +96,11 @@ func (a *AggregateOptionsBuilder) LoadAll() *AggregateOptionsBuilder {
 	return a
 }
 
-// SortBy adds a sorting key to this aggregate
-func (a *AggregateOptionsBuilder) SortBy(property, order string) *AggregateOptionsBuilder {
-	if a.opts.SortBy == nil {
-		a.opts.SortBy = &AggregateSort{}
-	}
-	a.opts.SortBy.Keys = append(a.opts.SortBy.Keys, AggregateSortKey{
-		Name:  property,
-		Order: order,
+// SortBy adds a sorting step to this aggregate.
+func (a *AggregateOptionsBuilder) SortBy(keys []AggregateSortKey) *AggregateOptionsBuilder {
+
+	a.opts.Steps = append(a.opts.Steps, &AggregateSort{
+		Keys: keys,
 	})
 
 	return a
@@ -111,17 +108,17 @@ func (a *AggregateOptionsBuilder) SortBy(property, order string) *AggregateOptio
 
 // SortByMax sets the MAX limit on an aggregate sort key. This will be
 // ignored if not sort keys have been supplied.
-func (a *AggregateOptionsBuilder) SortByMax(max int64) *AggregateOptionsBuilder {
-	if a.opts.SortBy == nil {
-		a.opts.SortBy = &AggregateSort{}
-	}
-	a.opts.SortBy.Max = max
+func (a *AggregateOptionsBuilder) SortByMax(keys []AggregateSortKey, max int64) *AggregateOptionsBuilder {
+	a.opts.Steps = append(a.opts.Steps, &AggregateSort{
+		Keys: keys,
+		Max:  max,
+	})
 	return a
 }
 
 // GroupBy adds a new group by statement (constructed with a GroupByBuilder)
 func (a *AggregateOptionsBuilder) GroupBy(g AggregateGroupBy) *AggregateOptionsBuilder {
-	a.opts.GroupBy = append(a.opts.GroupBy, g)
+	a.opts.Steps = append(a.opts.Steps, &g)
 	return a
 }
 

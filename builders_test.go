@@ -98,7 +98,7 @@ var _ = Describe("We can build aggregate options", Label("builders", "ft.aggrega
 	It("can construct options with simple flags set", func() {
 		base := grstack.NewAggregateOptions()
 		base.Dialect = 2
-		base.Filter = "@test != 3"
+		base.Steps = append(base.Steps, grstack.AggregateFilter("@test != 3"))
 		base.Timeout = time.Duration(1000)
 		base.Verbatim = true
 
@@ -128,7 +128,7 @@ var _ = Describe("We can build aggregate options", Label("builders", "ft.aggrega
 
 	It("can construct a single group by", func() {
 		base := grstack.NewAggregateOptions()
-		base.GroupBy = []grstack.AggregateGroupBy{{
+		base.Steps = append(base.Steps, &grstack.AggregateGroupBy{
 			Properties: []string{"@name"},
 			Reducers: []grstack.AggregateReducer{
 				{
@@ -136,7 +136,7 @@ var _ = Describe("We can build aggregate options", Label("builders", "ft.aggrega
 					As:   "nameCount",
 				},
 			},
-		}}
+		})
 
 		built := grstack.NewAggregateOptionsBuilder().
 			GroupBy(grstack.NewGroupByBuilder().
@@ -149,18 +149,18 @@ var _ = Describe("We can build aggregate options", Label("builders", "ft.aggrega
 
 	It("can build a complex aggregate", func() {
 		base := grstack.NewAggregateOptions()
-		base.Apply = []grstack.AggregateApply{{
+		base.Steps = append(base.Steps, &grstack.AggregateApply{
 			Expression: "@timestamp - (@timestamp % 86400)",
 			As:         "day",
-		}}
-		base.GroupBy = []grstack.AggregateGroupBy{{
+		})
+		base.Steps = append(base.Steps, &grstack.AggregateGroupBy{
 			Properties: []string{"@day", "@country"},
 			Reducers: []grstack.AggregateReducer{{
 				Name: "count",
 				As:   "num_visits",
-			}},
-		}}
-		base.SortBy = &grstack.AggregateSort{
+			}}})
+
+		base.Steps = append(base.Steps, &grstack.AggregateSort{
 			Keys: []grstack.AggregateSortKey{{
 				Name:  "@day",
 				Order: grstack.SortAsc,
@@ -168,7 +168,7 @@ var _ = Describe("We can build aggregate options", Label("builders", "ft.aggrega
 				Name:  "@country",
 				Order: grstack.SortDesc,
 			}},
-		}
+		})
 
 		built := grstack.NewAggregateOptionsBuilder().
 			Apply("@timestamp - (@timestamp % 86400)", "day").
@@ -176,8 +176,7 @@ var _ = Describe("We can build aggregate options", Label("builders", "ft.aggrega
 				Properties([]string{"@day", "@country"}).
 				Reduce(grstack.ReduceCount("num_visits")).
 				GroupBy()).
-			SortBy("@day", grstack.SortAsc).
-			SortBy("@country", grstack.SortDesc)
+			SortBy([]grstack.AggregateSortKey{{Name: "@day", Order: grstack.SortAsc}, {Name: "@country", Order: grstack.SortDesc}})
 
 		Expect(base).To(Equal(built.Options()))
 

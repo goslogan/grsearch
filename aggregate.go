@@ -11,17 +11,13 @@ import (
 // This can be built by calling the [NewAggregateOptions] function or via [AggregateOptionsBuilder.Options]
 // using the Builder API.
 type AggregateOptions struct {
-	Verbatim bool               // Set to true if stemming should not be used
-	Load     []AggregateLoad    // Values for the LOAD subcommand; use the [LoadAll] variable to represent "LOAD *"
-	Timeout  time.Duration      // Sets the query timeout. If zero, no TIMEOUT subcommmand is used
-	GroupBy  []AggregateGroupBy // GroupBy is an array of GROUP BY subcommands
-	SortBy   *AggregateSort     // SortBy represents the sort keys for the aggregate
-	Apply    []AggregateApply
-	Limit    *Limit
-	Filter   string
+	Verbatim bool             // Set to true if stemming should not be used
+	Load     []AggregateLoad  // Values for the LOAD subcommand; use the [LoadAll] variable to represent "LOAD *"
+	Timeout  time.Duration    // Sets the query timeout. If zero, no TIMEOUT subcommmand is used
 	Cursor   *AggregateCursor // nil means no cursor
 	Params   map[string]interface{}
 	Dialect  uint8
+	Steps    []AggregateStep // The steps to be executed in order
 }
 
 // AggregateGroupBy represents a single GROUPBY statement in a
@@ -39,6 +35,8 @@ type AggregateApply struct {
 	Expression string
 	As         string
 }
+
+type AggregateFilter string
 
 // Load represents parameters to the LOAD argument
 type AggregateLoad struct {
@@ -60,6 +58,10 @@ type AggregateSortKey struct {
 	Order string
 }
 
+type AggregateStep interface {
+	serializeStep() []interface{}
+}
+
 // LoadAll can be used to indicate FT.AGGREGATE idx LOAD *
 var LoadAll = AggregateLoad{Name: "*"}
 
@@ -78,29 +80,17 @@ func NewAggregateOptions() *AggregateOptions {
 
 func (a *AggregateOptions) serialize() []interface{} {
 	args := []interface{}{}
+
+	if a.Verbatim {
+		args = append(args, "verbatim")
+	}
 	if a.Timeout != 0 {
 		args = internal.AppendStringArg(args, "timeout", fmt.Sprintf("%d", a.Timeout.Milliseconds()))
 	}
-
 	args = append(args, a.serializeLoad()...)
-	for _, g := range a.GroupBy {
-		args = append(args, g.serialize()...)
-	}
 
-	if a.SortBy != nil {
-		args = append(args, a.SortBy.serialize()...)
-	}
-
-	for _, a := range a.Apply {
-		args = append(args, a.serialize()...)
-	}
-
-	if a.Limit != nil {
-		args = append(args, a.Limit.serialize()...)
-	}
-
-	if a.Filter != "" {
-		args = append(args, "filter", a.Filter)
+	for _, step := range a.Steps {
+		args = append(args, step.serializeStep()...)
 	}
 
 	if a.Cursor != nil {
@@ -122,6 +112,10 @@ func (a *AggregateOptions) serialize() []interface{} {
 
 }
 
+func (f AggregateFilter) serializeStep() []interface{} {
+	return []interface{}{f}
+}
+
 func (a *AggregateOptions) serializeLoad() []interface{} {
 
 	if len(a.Load) == 0 {
@@ -138,7 +132,7 @@ func (a *AggregateOptions) serializeLoad() []interface{} {
 	return loads
 }
 
-func (a *AggregateApply) serialize() []interface{} {
+func (a *AggregateApply) serializeStep() []interface{} {
 
 	args := []interface{}{"apply", a.Expression}
 	if a.As != "" {
@@ -155,7 +149,7 @@ func (l AggregateLoad) serialize() []interface{} {
 	}
 }
 
-func (s AggregateSort) serialize() []interface{} {
+func (s AggregateSort) serializeStep() []interface{} {
 
 	nArgs := len(s.Keys)
 
@@ -202,7 +196,7 @@ func (r *AggregateReducer) serialize() []interface{} {
 	return args
 }
 
-func (g *AggregateGroupBy) serialize() []interface{} {
+func (g *AggregateGroupBy) serializeStep() []interface{} {
 	args := []interface{}{"GROUPBY", len(g.Properties)}
 	for _, arg := range g.Properties {
 		args = append(args, arg)
