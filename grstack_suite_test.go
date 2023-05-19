@@ -44,7 +44,7 @@ func escapeForHash(s string) string {
 // convert strings that need to stay "as one for tokenising"
 func escapeForJSON(s string) string {
 	re := regexp.MustCompile(`([,.<>{}\[\]"':;!@#$%^&*()\-+=~ ])`)
-	return re.ReplaceAllString(s, `\\$1`)
+	return re.ReplaceAllString(s, "\\\\$1")
 }
 
 // initialise the test data we use throughout
@@ -64,11 +64,10 @@ func createJSONTestData() {
 		}
 		row[2] = escapeForJSON(row[2])
 		row[3] = escapeForJSON(row[3])
-		row[5] = escapeForJSON(row[5])
 		Expect(err).NotTo(HaveOccurred())
 		var js bytes.Buffer
 		Expect(t.ExecuteTemplate(&js, "customer", row)).NotTo(HaveOccurred())
-		Expect(client.JSONSet(ctx, fmt.Sprintf("customer:%s", row[4]), "$", js.String()).Err()).NotTo(HaveOccurred())
+		Expect(client.JSONSet(ctx, fmt.Sprintf("jaccount:%s", row[4]), "$", js.String()).Err()).NotTo(HaveOccurred())
 	}
 
 	csvData = strings.NewReader(commandData)
@@ -84,7 +83,7 @@ func createJSONTestData() {
 		Expect(err).NotTo(HaveOccurred())
 		var js bytes.Buffer
 		Expect(t.ExecuteTemplate(&js, "command", row)).NotTo(HaveOccurred())
-		Expect(client.JSONSet(ctx, fmt.Sprintf("cmd:%s", row[0]), "$", js.String()).Err()).NotTo(HaveOccurred())
+		Expect(client.JSONSet(ctx, fmt.Sprintf("jcommand:%s", row[0]), "$", js.String()).Err()).NotTo(HaveOccurred())
 	}
 }
 
@@ -160,29 +159,55 @@ func createHashIndexes() {
 func createJSONIndexes() {
 
 	fmt.Println("Generating JSON Indexes...")
-	Expect(client.FTCreateIndex(ctx, "jcustomers", grstack.NewIndexBuilder().
-		Prefix("customer:").
+	cmd := client.FTCreateIndex(ctx, "jcustomers", grstack.NewIndexBuilder().
+		On("json").
+		Prefix("jaccount:").
 		Schema(grstack.TagAttribute{
-			Name:     "account_id",
+			Name:     "$.account_id",
 			Alias:    "id",
-			Sortable: true}).Schema(grstack.TextAttribute{Name: "customer",
-		Sortable: true}).Schema(grstack.TextAttribute{
-		Name:     "email",
-		Sortable: true}).Schema(grstack.TagAttribute{
-		Name:     "account_owner",
-		Alias:    "owner",
-		Sortable: true}).Schema(grstack.NumericAttribute{
-		Name:     "balance",
-		Sortable: true,
-	}).Options()).Err()).NotTo(HaveOccurred())
+			Sortable: true}).
+		Schema(grstack.TextAttribute{
+			Name:     "$.customer",
+			Alias:    "customer",
+			Sortable: true}).
+		Schema(grstack.TextAttribute{
+			Name:     "$.email",
+			Alias:    "email",
+			Sortable: true}).
+		Schema(grstack.TagAttribute{
+			Name:     "$.account_owner",
+			Alias:    "owner",
+			Sortable: true}).
+		Schema(grstack.NumericAttribute{
+			Name:     "$.balance",
+			Alias:    "balance",
+			Sortable: true,
+		}).Options())
+	Expect(cmd.Err()).NotTo(HaveOccurred())
 
 	Expect(client.FTCreateIndex(ctx, "jdocs", grstack.NewIndexBuilder().
-		Prefix("command:").
+		Prefix("jcommand:").
 		Schema(grstack.TagAttribute{
-			Name:     "group",
+			Name:     "$.group",
 			Sortable: true}).Schema(grstack.TextAttribute{
-		Name:     "command",
+		Name:     "$.command",
 		Sortable: true}).Options()).Err()).NotTo(HaveOccurred())
+
+	// complex documents for testing JSON edge cases
+	doc1 := `{"data": 1, "test1": {"data": 2 }, "test2": {"data": 1}}`
+	doc2 := `{"data": 1, "test": {"data": 1 }}`
+
+	Expect(client.JSONSet(ctx, "jcomplex1", "$", doc1).Err()).NotTo(HaveOccurred())
+	Expect(client.JSONSet(ctx, "jcomplex2", "$", doc2).Err()).NotTo(HaveOccurred())
+	Expect(client.FTCreateIndex(ctx, "jsoncomplex",
+		grstack.NewIndexBuilder().
+			On("json").
+			Prefix("jcomplex").
+			Schema(grstack.NumericAttribute{
+				Name:     "$..data",
+				Alias:    "datum",
+				Sortable: true,
+			}).Options()).Err()).NotTo(HaveOccurred())
 
 }
 
@@ -198,7 +223,7 @@ var _ = BeforeSuite(func() {
 	createHashTestData()
 	createHashIndexes()
 	createJSONTestData()
-	// createJSONIndexes()
+	createJSONIndexes()
 	time.Sleep(time.Second * 5)
 })
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"reflect"
 
 	"github.com/goslogan/grstack/internal"
 	"github.com/redis/go-redis/v9"
@@ -12,7 +11,7 @@ import (
 
 type QueryCmd struct {
 	redis.SliceCmd
-	val     map[string]*QueryResult
+	val     map[string]QueryResult
 	options *QueryOptions
 }
 
@@ -26,15 +25,15 @@ func NewQueryCmd(ctx context.Context, args ...interface{}) *QueryCmd {
 		SliceCmd: *redis.NewSliceCmd(ctx, args...),
 	}
 }
-func (cmd *QueryCmd) SetVal(val map[string]*QueryResult) {
+func (cmd *QueryCmd) SetVal(val map[string]QueryResult) {
 	cmd.val = val
 }
 
-func (cmd *QueryCmd) Val() map[string]*QueryResult {
+func (cmd *QueryCmd) Val() map[string]QueryResult {
 	return cmd.val
 }
 
-func (cmd *QueryCmd) Result() (map[string]*QueryResult, error) {
+func (cmd *QueryCmd) Result() (map[string]QueryResult, error) {
 	return cmd.Val(), cmd.Err()
 }
 
@@ -46,54 +45,8 @@ func (cmd *QueryCmd) Len() int {
 	}
 }
 
-func (cmd *QueryCmd) Scan(dst interface{}) error {
-	if cmd.Err() != nil {
-		return cmd.Err()
-	}
-
-	if cmd.options.NoContent {
-		return fmt.Errorf("ftsearch.Scan - NoContent is set")
-	}
-
-	if reflect.TypeOf(dst).Kind() != reflect.Slice {
-		return fmt.Errorf("ftsearch.Scan - %T is not a slice", dst)
-	}
-
-	list := reflect.ValueOf(dst)
-
-	if list.Len() < cmd.Len() {
-		return fmt.Errorf("ftsearch.Scan - %T is not large enough: %d < %d", dst, list.Len(), cmd.Len())
-	}
-
-	// Because we don't have access to go-redis internals we fake this
-	// as MapStringStringCmds and scan with them.
-	n := 0
-	for _, result := range cmd.val {
-		sCmd := redis.NewMapStringStringCmd(context.Background(), "DUMMY")
-		sCmd.SetVal(result.Value)
-		item := list.Index(n).Interface()
-		if err := sCmd.Scan(item); err != nil {
-			return err
-		}
-		n++
-	}
-
-	return nil
-}
-
 func (cmd *QueryCmd) String() string {
 	return cmd.SliceCmd.String()
-}
-
-func (cmd *QueryCmd) toMap(input []interface{}) map[string]string {
-	results := make(map[string]string, len(input)/2)
-	key := ""
-	for i := 0; i < len(input); i += 2 {
-		key = input[i].(string)
-		value := input[i+1].(string)
-		results[key] = value
-	}
-	return results
 }
 
 func (cmd *QueryCmd) postProcess() error {
@@ -101,9 +54,9 @@ func (cmd *QueryCmd) postProcess() error {
 		return cmd.Err()
 	}
 	rawResults := cmd.SliceCmd.Val()
-	resultSize := cmd.options.resultSize
+	resultSize := cmd.options.resultSize()
 	resultCount := rawResults[0].(int64)
-	results := make(map[string]*QueryResult, resultCount)
+	results := make(map[string]QueryResult, resultCount)
 
 	for i := 1; i < len(rawResults); i += resultSize {
 		j := 0
@@ -125,17 +78,29 @@ func (cmd *QueryCmd) postProcess() error {
 			j++
 		}
 
-		result := QueryResult{
-			Score:       score,
-			Explanation: explanation,
+		var result QueryResult
+
+		if cmd.options.json {
+			result = &JSONQueryResult{
+				Score:       score,
+				Explanation: explanation,
+			}
+		} else {
+			result = &HashQueryResult{
+				Score:       score,
+				Explanation: explanation,
+			}
 		}
 
 		if !cmd.options.NoContent {
-			result.Value = cmd.toMap(rawResults[i+j].([]interface{}))
-			j++
+			if err := result.parse(rawResults[i+j].([]interface{})); err != nil {
+				return err
+			}
 		}
 
-		results[key] = &result
+		results[key] = result
+		j++
+
 	}
 
 	cmd.SetVal(results)

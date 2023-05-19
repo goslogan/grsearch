@@ -2,11 +2,14 @@
 package grstack
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"math"
 	"time"
 
 	"github.com/goslogan/grstack/internal"
+	"github.com/redis/go-redis/v9"
 )
 
 type QueryOptions struct {
@@ -35,7 +38,7 @@ type QueryOptions struct {
 	HighLight    *QueryHighlight
 	GeoFilters   []GeoFilter
 	Params       map[string]interface{}
-	resultSize   int
+	json         bool
 }
 
 const (
@@ -57,9 +60,19 @@ const (
 	defaultTimeout           = time.Duration(-999)
 )
 
-type QueryResult struct {
+type QueryResult interface {
+	parse([]interface{}) error
+}
+
+type HashQueryResult struct {
 	Score       float64
 	Value       map[string]string
+	Explanation []interface{}
+}
+
+type JSONQueryResult struct {
+	Score       float64
+	Value       map[string]interface{}
 	Explanation []interface{}
 }
 
@@ -146,7 +159,7 @@ func (q *QueryOptions) serialize() []interface{} {
 
 func (q *QueryOptions) serializeReturn() []interface{} {
 	if len(q.Return) > 0 {
-		fields := []interface{}{"return", len(q.Return)}
+		fields := []interface{}{}
 		for _, ret := range q.Return {
 			if ret.As == "" {
 				fields = append(fields, ret.Name)
@@ -154,7 +167,7 @@ func (q *QueryOptions) serializeReturn() []interface{} {
 				fields = append(fields, ret.Name, "as", ret.As)
 			}
 		}
-		return fields
+		return append([]interface{}{"return", len(fields)}, fields...)
 	} else {
 		return nil
 	}
@@ -162,7 +175,7 @@ func (q *QueryOptions) serializeReturn() []interface{} {
 
 // setResultSize uses the query to work out how many entries
 // in the query raw results slice are used per result.
-func (q *QueryOptions) setResultSize() {
+func (q *QueryOptions) resultSize() int {
 	count := 2 // default to 2 - key and value
 
 	if q.WithScores { // one more if returning scores
@@ -173,7 +186,7 @@ func (q *QueryOptions) setResultSize() {
 		count -= 1
 	}
 
-	q.resultSize = count
+	return count
 }
 
 // appendFlagArg appends the values to args if flag is true. args is returned
@@ -327,5 +340,38 @@ func (gf *GeoFilter) serialize() []interface{} {
 }
 
 /******************************************************************************
-* Internal utilities                                                          *
+* Result parsing
 ******************************************************************************/
+
+func (r *HashQueryResult) parse(input []interface{}) error {
+	results := make(map[string]string, len(input)/2)
+	key := ""
+	for i := 0; i < len(input); i += 2 {
+		key = input[i].(string)
+		value := input[i+1].(string)
+		results[key] = value
+	}
+	r.Value = results
+	return nil
+}
+
+func (r *HashQueryResult) Scan(dst interface{}) error {
+	sCmd := redis.NewMapStringStringCmd(context.Background(), "DUMMY")
+	sCmd.SetVal(r.Value)
+	return sCmd.Scan(dst)
+}
+
+func (r *JSONQueryResult) parse(input []interface{}) error {
+
+	key := input[0].(string)
+	rawValue := input[1].(string)
+	var result interface{}
+	err := json.Unmarshal([]byte(rawValue), &result)
+
+	if r.Value == nil {
+		r.Value = make(map[string]interface{})
+	}
+
+	r.Value[key] = result
+	return err
+}
