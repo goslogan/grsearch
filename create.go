@@ -25,29 +25,33 @@ type IndexOptions struct {
 }
 
 type TagAttribute struct {
-	Name         string
-	Alias        string
-	Sortable     bool
-	UnNormalized bool
-	Separator    string
-	CaseSenstive bool
+	Name           string
+	Alias          string
+	Sortable       bool
+	UnNormalized   bool
+	Separator      string
+	CaseSensitive  bool
+	WithSuffixTrie bool
+	NoIndex        bool
 }
 
 type TextAttribute struct {
-	Name         string
-	Alias        string
-	Sortable     bool
-	UnNormalized bool
-	Phonetic     string
-	Weight       float32
-	NoStem       bool
+	Name           string
+	Alias          string
+	Sortable       bool
+	UnNormalized   bool
+	Phonetic       string
+	Weight         float32
+	NoStem         bool
+	WithSuffixTrie bool
+	NoIndex        bool
 }
 
 type NumericAttribute struct {
-	Name         string
-	Alias        string
-	Sortable     bool
-	UnNormalized bool
+	Name     string
+	Alias    string
+	Sortable bool
+	NoIndex  bool
 }
 
 type SchemaAttribute interface {
@@ -138,9 +142,10 @@ func (a NumericAttribute) serialize() []interface{} {
 
 	if a.Sortable {
 		attribs = append(attribs, "sortable")
-		if a.UnNormalized {
-			attribs = append(attribs, "sortable", "unf")
-		}
+	}
+
+	if a.NoIndex {
+		attribs = append(attribs, "noindex")
 	}
 
 	return attribs
@@ -162,7 +167,7 @@ func (a TagAttribute) serialize() []interface{} {
 	if a.Separator != "" {
 		attribs = append(attribs, "separator", a.Separator)
 	}
-	if a.CaseSenstive {
+	if a.CaseSensitive {
 		attribs = append(attribs, "casesensitive")
 	}
 

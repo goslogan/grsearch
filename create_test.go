@@ -9,7 +9,7 @@ import (
 var _ = Describe("Create", Label("json", "query", "ft.create"), func() {
 
 	It("can build the simplest JSON index", func() {
-		createCmd := client.FTCreateIndex(ctx, "jsimple", grstack.NewIndexBuilder().Schema(grstack.TextAttribute{
+		createCmd := client.FTCreate(ctx, "jsimple", grstack.NewIndexBuilder().Schema(grstack.TextAttribute{
 			Name:  "$.foo",
 			Alias: "bar",
 		}).On("json").Options())
@@ -18,7 +18,7 @@ var _ = Describe("Create", Label("json", "query", "ft.create"), func() {
 	})
 
 	It("can build a json index with options", func() {
-		createCmd := client.FTCreateIndex(ctx, "jwithoptions", grstack.NewIndexBuilder().
+		createCmd := client.FTCreate(ctx, "jwithoptions", grstack.NewIndexBuilder().
 			Prefix("jaccount:").
 			On("json").
 			MaxTextFields().

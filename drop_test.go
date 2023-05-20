@@ -11,7 +11,7 @@ var _ = Describe("Drop", func() {
 	// TODO - fix this - we don't want to mess up the tests
 
 	It("can drop an index but keep the docs", func() {
-		createCmd := client.FTCreateIndex(ctx, "drop_test", grstack.NewIndexBuilder().Schema(grstack.TextAttribute{
+		createCmd := client.FTCreate(ctx, "drop_test", grstack.NewIndexBuilder().Schema(grstack.TextAttribute{
 			Name:  "foo",
 			Alias: "bar",
 		}).Options())

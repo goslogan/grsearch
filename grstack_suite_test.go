@@ -130,7 +130,7 @@ func createHashTestData() {
 
 func createHashIndexes() {
 	fmt.Println("Generating Hash Indexes...")
-	Expect(client.FTCreateIndex(ctx, "hcustomers", grstack.NewIndexBuilder().
+	Expect(client.FTCreate(ctx, "hcustomers", grstack.NewIndexBuilder().
 		Prefix("haccount:").
 		Schema(grstack.TagAttribute{
 			Name:     "account_id",
@@ -146,7 +146,7 @@ func createHashIndexes() {
 		Sortable: true,
 	}).Options()).Err()).NotTo(HaveOccurred())
 
-	Expect(client.FTCreateIndex(ctx, "hdocs", grstack.NewIndexBuilder().
+	Expect(client.FTCreate(ctx, "hdocs", grstack.NewIndexBuilder().
 		Prefix("hcommand:").
 		Schema(grstack.TagAttribute{
 			Name:     "group",
@@ -159,7 +159,7 @@ func createHashIndexes() {
 func createJSONIndexes() {
 
 	fmt.Println("Generating JSON Indexes...")
-	cmd := client.FTCreateIndex(ctx, "jcustomers", grstack.NewIndexBuilder().
+	cmd := client.FTCreate(ctx, "jcustomers", grstack.NewIndexBuilder().
 		On("json").
 		Prefix("jaccount:").
 		Schema(grstack.TagAttribute{
@@ -185,7 +185,7 @@ func createJSONIndexes() {
 		}).Options())
 	Expect(cmd.Err()).NotTo(HaveOccurred())
 
-	Expect(client.FTCreateIndex(ctx, "jdocs", grstack.NewIndexBuilder().
+	Expect(client.FTCreate(ctx, "jdocs", grstack.NewIndexBuilder().
 		Prefix("jcommand:").
 		Schema(grstack.TagAttribute{
 			Name:     "$.group",
@@ -199,7 +199,7 @@ func createJSONIndexes() {
 
 	Expect(client.JSONSet(ctx, "jcomplex1", "$", doc1).Err()).NotTo(HaveOccurred())
 	Expect(client.JSONSet(ctx, "jcomplex2", "$", doc2).Err()).NotTo(HaveOccurred())
-	Expect(client.FTCreateIndex(ctx, "jsoncomplex",
+	Expect(client.FTCreate(ctx, "jsoncomplex",
 		grstack.NewIndexBuilder().
 			On("json").
 			Prefix("jcomplex").

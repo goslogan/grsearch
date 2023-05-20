@@ -90,7 +90,7 @@ var _ = Describe("We can build aggregate options", Label("builders", "ft.aggrega
 
 	It("can construct default query options", func() {
 		base := grstack.NewAggregateOptions()
-		built := grstack.NewAggregateOptionsBuilder()
+		built := grstack.NewAggregateBuilder()
 
 		Expect(base).To(Equal(built.Options()))
 	})
@@ -102,7 +102,7 @@ var _ = Describe("We can build aggregate options", Label("builders", "ft.aggrega
 		base.Timeout = time.Duration(1000)
 		base.Verbatim = true
 
-		built := grstack.NewAggregateOptionsBuilder().
+		built := grstack.NewAggregateBuilder().
 			Dialect(2).
 			Timeout(time.Duration(1000)).
 			Verbatim().
@@ -119,7 +119,7 @@ var _ = Describe("We can build aggregate options", Label("builders", "ft.aggrega
 			"bar": 2,
 		}
 
-		built := grstack.NewAggregateOptionsBuilder().
+		built := grstack.NewAggregateBuilder().
 			Param("foo", "one").
 			Param("bar", 2)
 
@@ -138,7 +138,7 @@ var _ = Describe("We can build aggregate options", Label("builders", "ft.aggrega
 			},
 		})
 
-		built := grstack.NewAggregateOptionsBuilder().
+		built := grstack.NewAggregateBuilder().
 			GroupBy(grstack.NewGroupByBuilder().
 				Properties([]string{"@name"}).
 				Reduce(grstack.ReduceCount("nameCount")).
@@ -170,7 +170,7 @@ var _ = Describe("We can build aggregate options", Label("builders", "ft.aggrega
 			}},
 		})
 
-		built := grstack.NewAggregateOptionsBuilder().
+		built := grstack.NewAggregateBuilder().
 			Apply("@timestamp - (@timestamp % 86400)", "day").
 			GroupBy(grstack.NewGroupByBuilder().
 				Properties([]string{"@day", "@country"}).

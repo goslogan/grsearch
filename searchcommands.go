@@ -17,8 +17,8 @@ func (c cmdable) FTDropIndex(ctx context.Context, index string, dropDocuments bo
 	return cmd
 }
 
-// FTCreateIndex creates a new index.
-func (c cmdable) FTCreateIndex(ctx context.Context, index string, options *IndexOptions) *redis.BoolCmd {
+// FTCreate creates a new index.
+func (c cmdable) FTCreate(ctx context.Context, index string, options *IndexOptions) *redis.BoolCmd {
 	args := []interface{}{"ft.create", index}
 	args = append(args, options.serialize()...)
 	cmd := redis.NewBoolCmd(ctx, args...)
