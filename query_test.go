@@ -166,31 +166,26 @@ var _ = Describe("JSON searches", Label("json", "query", "ft.search"), func() {
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		Expect(cmd.Val()).To(HaveKey("jcomplex1"))
 		Expect(cmd.Val()).To(HaveKey("jcomplex2"))
-		Expect(cmd.Val()["jcomplex2"]).To(Equal(&grstack.JSONQueryResult{
-			Score:       0,
-			Explanation: nil,
-			Value: map[string]interface{}{
-				"$": map[string]interface{}{
+		Expect(cmd.Val()["jcomplex2"].(*grstack.JSONQueryResult).Value).To(Equal(map[string]interface{}{
+			"$": map[string]interface{}{
+				"data": float64(1),
+				"test": map[string]interface{}{
 					"data": float64(1),
-					"test": map[string]interface{}{
-						"data": float64(1),
-					},
-				}},
-		}))
-		Expect(cmd.Val()["jcomplex1"]).To(Equal(&grstack.JSONQueryResult{
-			Score:       0,
-			Explanation: nil,
-			Value: map[string]interface{}{
-				"$": map[string]interface{}{
+				},
+			}},
+		))
+		Expect(cmd.Val()["jcomplex1"].(*grstack.JSONQueryResult).Value).To(Equal(map[string]interface{}{
+			"$": map[string]interface{}{
+
+				"data": float64(1),
+				"test1": map[string]interface{}{
+					"data": float64(2),
+				},
+				"test2": map[string]interface{}{
 					"data": float64(1),
-					"test1": map[string]interface{}{
-						"data": float64(2),
-					},
-					"test2": map[string]interface{}{
-						"data": float64(1),
-					},
-				}},
-		}))
+				},
+			}},
+		))
 	})
 
 	It("can handle multiple search results with DIALECT 3", Label("json", "query", "ft.search"), func() {
@@ -201,30 +196,24 @@ var _ = Describe("JSON searches", Label("json", "query", "ft.search"), func() {
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		Expect(cmd.Val()).To(HaveKey("jcomplex1"))
 		Expect(cmd.Val()).To(HaveKey("jcomplex2"))
-		Expect(cmd.Val()["jcomplex2"]).To(Equal(&grstack.JSONQueryResult{
-			Score:       0,
-			Explanation: nil,
-			Value: map[string]interface{}{
-				"$": []interface{}{map[string]interface{}{
+		Expect(cmd.Val()["jcomplex2"].(*grstack.JSONQueryResult).Value).To(Equal(map[string]interface{}{
+			"$": []interface{}{map[string]interface{}{
+				"data": float64(1),
+				"test": map[string]interface{}{
 					"data": float64(1),
-					"test": map[string]interface{}{
-						"data": float64(1),
-					},
-				}}},
+				},
+			}},
 		}))
-		Expect(cmd.Val()["jcomplex1"]).To(Equal(&grstack.JSONQueryResult{
-			Score:       0,
-			Explanation: nil,
-			Value: map[string]interface{}{
-				"$": []interface{}{map[string]interface{}{
+		Expect(cmd.Val()["jcomplex1"].(*grstack.JSONQueryResult).Value).To(Equal(map[string]interface{}{
+			"$": []interface{}{map[string]interface{}{
+				"data": float64(1),
+				"test1": map[string]interface{}{
+					"data": float64(2),
+				},
+				"test2": map[string]interface{}{
 					"data": float64(1),
-					"test1": map[string]interface{}{
-						"data": float64(2),
-					},
-					"test2": map[string]interface{}{
-						"data": float64(1),
-					},
-				}}},
+				},
+			}},
 		}))
 	})
 
@@ -239,16 +228,8 @@ var _ = Describe("JSON searches", Label("json", "query", "ft.search"), func() {
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		Expect(cmd.Val()).To(HaveKey("jcomplex1"))
 		Expect(cmd.Val()).To(HaveKey("jcomplex2"))
-		Expect(cmd.Val()["jcomplex2"]).To(Equal(&grstack.JSONQueryResult{
-			Score:       0,
-			Explanation: nil,
-			Value:       map[string]interface{}{"answer": float64(1)}},
-		))
-		Expect(cmd.Val()["jcomplex1"]).To(Equal(&grstack.JSONQueryResult{
-			Score:       0,
-			Explanation: nil,
-			Value:       map[string]interface{}{"answer": float64(1)}},
-		))
+		Expect(cmd.Val()["jcomplex2"].(*grstack.JSONQueryResult).Value).To(Equal(map[string]interface{}{"answer": float64(1)}))
+		Expect(cmd.Val()["jcomplex1"].(*grstack.JSONQueryResult).Value).To(Equal(map[string]interface{}{"answer": float64(1)}))
 	})
 
 	It("can return values when we use RETURN and DIALECT v3", Label("json", "query", "ft.search"), func() {
@@ -263,16 +244,29 @@ var _ = Describe("JSON searches", Label("json", "query", "ft.search"), func() {
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		Expect(cmd.Val()).To(HaveKey("jcomplex1"))
 		Expect(cmd.Val()).To(HaveKey("jcomplex2"))
-		Expect(cmd.Val()["jcomplex1"]).To(Equal(&grstack.JSONQueryResult{
-			Score:       0,
-			Explanation: nil,
-			Value:       map[string]interface{}{"answer": []interface{}{float64(1), float64(2), float64(1)}}},
-		))
-		Expect(cmd.Val()["jcomplex2"]).To(Equal(&grstack.JSONQueryResult{
-			Score:       0,
-			Explanation: nil,
-			Value:       map[string]interface{}{"answer": []interface{}{float64(1), float64(1)}}},
-		))
+		Expect(cmd.Val()["jcomplex1"].(*grstack.JSONQueryResult).Value).To(Equal(map[string]interface{}{"answer": []interface{}{float64(1), float64(2), float64(1)}}))
+		Expect(cmd.Val()["jcomplex2"].(*grstack.JSONQueryResult).Value).To(Equal(map[string]interface{}{"answer": []interface{}{float64(1), float64(1)}}))
+	})
+
+	It("can scan a result", Label("json", "query", "ft.search", "scan"), func() {
+
+		type Customer struct {
+			Customer     string  `json:"customer"`
+			Email        string  `json:"email"`
+			IP           string  `json:"ip"`
+			AccountId    string  `json:"account_id"`
+			AccountOwner string  `json:"account_owner"`
+			Balance      float64 `json:"balance"`
+		}
+
+		var customer = Customer{}
+
+		cmd := client.FTSearchJSON(ctx, "jcustomers", `@owner:{ellen\.ripley}`, grstack.NewQueryOptions())
+		Expect(cmd.Err()).NotTo(HaveOccurred())
+		Expect(cmd.Val()).To(HaveKey("jaccount:536299"))
+		Expect(cmd.Val()["jaccount:536299"].(*grstack.JSONQueryResult).Scan("$", &customer)).NotTo(HaveOccurred())
+		Expect(customer.Customer).To(Equal("Davon Audley"))
+		Expect(customer.Email).To(Equal(`daudley3\@alexa\.com`))
 	})
 
 })

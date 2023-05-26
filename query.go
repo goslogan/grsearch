@@ -72,6 +72,7 @@ type HashQueryResult struct {
 type JSONQueryResult struct {
 	Score       float64
 	Value       map[string]interface{}
+	rawValue    map[string]string
 	Explanation []interface{}
 }
 
@@ -372,9 +373,15 @@ func (r *JSONQueryResult) parse(input []interface{}) error {
 	err := json.Unmarshal([]byte(rawValue), &result)
 
 	if r.Value == nil {
+		r.rawValue = make(map[string]string)
 		r.Value = make(map[string]interface{})
 	}
 
+	r.rawValue[key] = rawValue
 	r.Value[key] = result
 	return err
+}
+
+func (r *JSONQueryResult) Scan(path string, to interface{}) error {
+	return json.Unmarshal([]byte(r.rawValue[path]), to)
 }
