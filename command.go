@@ -13,6 +13,7 @@ type QueryCmd struct {
 	redis.SliceCmd
 	val     map[string]QueryResult
 	options *QueryOptions
+	count   int64 // Contains the total number of results if the query was successful
 }
 
 /*******************************************************************************
@@ -47,6 +48,15 @@ func (cmd *QueryCmd) Len() int {
 
 func (cmd *QueryCmd) String() string {
 	return cmd.SliceCmd.String()
+}
+
+func (cmd *QueryCmd) SetCount(count int64) {
+	cmd.count = count
+}
+
+// Count returns the total number of results from a successful query.
+func (cmd *QueryCmd) Count() int64 {
+	return cmd.count
 }
 
 func (cmd *QueryCmd) postProcess() error {
@@ -103,6 +113,7 @@ func (cmd *QueryCmd) postProcess() error {
 
 	}
 
+	cmd.SetCount(resultCount)
 	cmd.SetVal(results)
 	return nil
 }
