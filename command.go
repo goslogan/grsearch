@@ -117,23 +117,6 @@ func (cmd *QueryCmd) postProcess() error {
 	return nil
 }
 
-// Iterator returns a SearchIterator which allows the caller to iterate through
-// the results of a search until all results have been retrieved
-func (cmd *QueryCmd) Iterator() *SearchIterator {
-	iterator := SearchIterator{
-		cmd: cmd,
-		pos: 0,
-	}
-	if cmd.options.Limit != nil {
-		iterator.limit = cmd.options.Limit
-	} else {
-		iterator.limit = &Limit{
-			Offset: DefaultOffset,
-			Num:    DefaultLimit,
-		}
-	}
-}
-
 /*******************************************************************************
  ***** ConfigGetCmd 													  ******
  *******************************************************************************/
