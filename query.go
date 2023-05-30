@@ -2,14 +2,11 @@
 package grstack
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
 	"math"
 	"time"
 
 	"github.com/goslogan/grstack/internal"
-	"github.com/redis/go-redis/v9"
 )
 
 type QueryOptions struct {
@@ -58,23 +55,6 @@ const (
 	SortNone                 = "" // SortNone is used to indicate that no sorting is required if you want be explicit
 	defaultDialect           = 2
 )
-
-type QueryResult interface {
-	parse([]interface{}) error
-}
-
-type HashQueryResult struct {
-	Score       float64
-	Value       map[string]string
-	Explanation []interface{}
-}
-
-type JSONQueryResult struct {
-	Score       float64
-	Value       map[string]interface{}
-	rawValue    map[string]string
-	Explanation []interface{}
-}
 
 /******************************************************************************
 * Functions operating on the query struct itself							  *
@@ -341,47 +321,4 @@ type GeoFilter struct {
 
 func (gf *GeoFilter) serialize() []interface{} {
 	return []interface{}{"geofilter", gf.Attribute, gf.Long, gf.Lat, gf.Radius, gf.Units}
-}
-
-/******************************************************************************
-* Result parsing
-******************************************************************************/
-
-func (r *HashQueryResult) parse(input []interface{}) error {
-	results := make(map[string]string, len(input)/2)
-	key := ""
-	for i := 0; i < len(input); i += 2 {
-		key = input[i].(string)
-		value := input[i+1].(string)
-		results[key] = value
-	}
-	r.Value = results
-	return nil
-}
-
-func (r *HashQueryResult) Scan(dst interface{}) error {
-	sCmd := redis.NewMapStringStringCmd(context.Background(), "DUMMY")
-	sCmd.SetVal(r.Value)
-	return sCmd.Scan(dst)
-}
-
-func (r *JSONQueryResult) parse(input []interface{}) error {
-
-	key := input[0].(string)
-	rawValue := input[1].(string)
-	var result interface{}
-	err := json.Unmarshal([]byte(rawValue), &result)
-
-	if r.Value == nil {
-		r.rawValue = make(map[string]string)
-		r.Value = make(map[string]interface{})
-	}
-
-	r.rawValue[key] = rawValue
-	r.Value[key] = result
-	return err
-}
-
-func (r *JSONQueryResult) Scan(path string, to interface{}) error {
-	return json.Unmarshal([]byte(r.rawValue[path]), to)
 }

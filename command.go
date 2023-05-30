@@ -11,8 +11,9 @@ import (
 
 type QueryCmd struct {
 	redis.SliceCmd
-	val     map[string]QueryResult
+	val     QueryResults
 	options *QueryOptions
+	count   int64 // Contains the total number of results if the query was successful
 }
 
 /*******************************************************************************
@@ -25,15 +26,15 @@ func NewQueryCmd(ctx context.Context, args ...interface{}) *QueryCmd {
 		SliceCmd: *redis.NewSliceCmd(ctx, args...),
 	}
 }
-func (cmd *QueryCmd) SetVal(val map[string]QueryResult) {
+func (cmd *QueryCmd) SetVal(val QueryResults) {
 	cmd.val = val
 }
 
-func (cmd *QueryCmd) Val() map[string]QueryResult {
+func (cmd *QueryCmd) Val() QueryResults {
 	return cmd.val
 }
 
-func (cmd *QueryCmd) Result() (map[string]QueryResult, error) {
+func (cmd *QueryCmd) Result() (QueryResults, error) {
 	return cmd.Val(), cmd.Err()
 }
 
@@ -49,6 +50,15 @@ func (cmd *QueryCmd) String() string {
 	return cmd.SliceCmd.String()
 }
 
+func (cmd *QueryCmd) SetCount(count int64) {
+	cmd.count = count
+}
+
+// Count returns the total number of results from a successful query.
+func (cmd *QueryCmd) Count() int64 {
+	return cmd.count
+}
+
 func (cmd *QueryCmd) postProcess() error {
 	if cmd.Err() != nil {
 		return cmd.Err()
@@ -56,7 +66,7 @@ func (cmd *QueryCmd) postProcess() error {
 	rawResults := cmd.SliceCmd.Val()
 	resultSize := cmd.options.resultSize()
 	resultCount := rawResults[0].(int64)
-	results := make(map[string]QueryResult, resultCount)
+	results := make([]*QueryResult, resultCount)
 
 	for i := 1; i < len(rawResults); i += resultSize {
 		j := 0
@@ -78,33 +88,50 @@ func (cmd *QueryCmd) postProcess() error {
 			j++
 		}
 
-		var result QueryResult
+		result := QueryResult{
+			Key:         key,
+			Score:       score,
+			Explanation: explanation,
+			Values:      nil,
+		}
 
 		if cmd.options.json {
-			result = &JSONQueryResult{
-				Score:       score,
-				Explanation: explanation,
-			}
+			result.Values = &JSONQueryValue{}
 		} else {
-			result = &HashQueryResult{
-				Score:       score,
-				Explanation: explanation,
-			}
+			result.Values = &HashQueryValue{}
 		}
 
 		if !cmd.options.NoContent {
-			if err := result.parse(rawResults[i+j].([]interface{})); err != nil {
+			if err := result.Values.parse(rawResults[i+j].([]interface{})); err != nil {
 				return err
 			}
 		}
 
-		results[key] = result
+		results = append(results, &result)
 		j++
 
 	}
 
-	cmd.SetVal(results)
+	cmd.SetCount(resultCount)
+	cmd.SetVal(QueryResults(results))
 	return nil
+}
+
+// Iterator returns a SearchIterator which allows the caller to iterate through
+// the results of a search until all results have been retrieved
+func (cmd *QueryCmd) Iterator() *SearchIterator {
+	iterator := SearchIterator{
+		cmd: cmd,
+		pos: 0,
+	}
+	if cmd.options.Limit != nil {
+		iterator.limit = cmd.options.Limit
+	} else {
+		iterator.limit = &Limit{
+			Offset: DefaultOffset,
+			Num:    DefaultLimit,
+		}
+	}
 }
 
 /*******************************************************************************
