@@ -66,7 +66,7 @@ func (cmd *QueryCmd) postProcess() error {
 	rawResults := cmd.SliceCmd.Val()
 	resultSize := cmd.options.resultSize()
 	resultCount := rawResults[0].(int64)
-	results := make([]*QueryResult, resultCount)
+	results := make([]*QueryResult, 0)
 
 	for i := 1; i < len(rawResults); i += resultSize {
 		j := 0
@@ -95,13 +95,14 @@ func (cmd *QueryCmd) postProcess() error {
 			Values:      nil,
 		}
 
-		if cmd.options.json {
-			result.Values = &JSONQueryValue{}
-		} else {
-			result.Values = &HashQueryValue{}
-		}
-
 		if !cmd.options.NoContent {
+
+			if cmd.options.json {
+				result.Values = &JSONQueryValue{}
+			} else {
+				result.Values = &HashQueryValue{}
+			}
+
 			if err := result.Values.parse(rawResults[i+j].([]interface{})); err != nil {
 				return err
 			}

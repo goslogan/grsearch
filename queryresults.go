@@ -68,7 +68,7 @@ func (r *JSONQueryValue) Scan(path string, to interface{}) error {
 	return json.Unmarshal([]byte(r.rawValue[path]), to)
 }
 
-// Given a QueryResults object return the individual result with the
+// Key returns the individual result with the
 // given key
 func (q QueryResults) Key(key string) *QueryResult {
 	for _, r := range q {
@@ -77,4 +77,14 @@ func (q QueryResults) Key(key string) *QueryResult {
 		}
 	}
 	return nil
+}
+
+// Keys returns the redis keys for all of the results
+func (q QueryResults) Keys() []string {
+	results := make([]string, len(q))
+	for i, k := range q {
+		results[i] = k.Key
+	}
+
+	return results
 }
