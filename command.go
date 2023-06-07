@@ -6,12 +6,13 @@ import (
 	"fmt"
 
 	"github.com/goslogan/grstack/internal"
+	"github.com/mitchellh/mapstructure"
 	"github.com/redis/go-redis/v9"
 )
 
 type QueryCmd struct {
 	redis.SliceCmd
-	val     map[string]QueryResult
+	val     QueryResults
 	options *QueryOptions
 	count   int64 // Contains the total number of results if the query was successful
 }
@@ -26,15 +27,15 @@ func NewQueryCmd(ctx context.Context, args ...interface{}) *QueryCmd {
 		SliceCmd: *redis.NewSliceCmd(ctx, args...),
 	}
 }
-func (cmd *QueryCmd) SetVal(val map[string]QueryResult) {
+func (cmd *QueryCmd) SetVal(val QueryResults) {
 	cmd.val = val
 }
 
-func (cmd *QueryCmd) Val() map[string]QueryResult {
+func (cmd *QueryCmd) Val() QueryResults {
 	return cmd.val
 }
 
-func (cmd *QueryCmd) Result() (map[string]QueryResult, error) {
+func (cmd *QueryCmd) Result() (QueryResults, error) {
 	return cmd.Val(), cmd.Err()
 }
 
@@ -66,7 +67,7 @@ func (cmd *QueryCmd) postProcess() error {
 	rawResults := cmd.SliceCmd.Val()
 	resultSize := cmd.options.resultSize()
 	resultCount := rawResults[0].(int64)
-	results := make(map[string]QueryResult, resultCount)
+	results := make([]*QueryResult, 0)
 
 	for i := 1; i < len(rawResults); i += resultSize {
 		j := 0
@@ -88,33 +89,33 @@ func (cmd *QueryCmd) postProcess() error {
 			j++
 		}
 
-		var result QueryResult
-
-		if cmd.options.json {
-			result = &JSONQueryResult{
-				Score:       score,
-				Explanation: explanation,
-			}
-		} else {
-			result = &HashQueryResult{
-				Score:       score,
-				Explanation: explanation,
-			}
+		result := QueryResult{
+			Key:         key,
+			Score:       score,
+			Explanation: explanation,
+			Values:      nil,
 		}
 
 		if !cmd.options.NoContent {
-			if err := result.parse(rawResults[i+j].([]interface{})); err != nil {
+
+			if cmd.options.json {
+				result.Values = &JSONQueryValue{}
+			} else {
+				result.Values = &HashQueryValue{}
+			}
+
+			if err := result.Values.parse(rawResults[i+j].([]interface{})); err != nil {
 				return err
 			}
 		}
 
-		results[key] = result
+		results = append(results, &result)
 		j++
 
 	}
 
 	cmd.SetCount(resultCount)
-	cmd.SetVal(results)
+	cmd.SetVal(QueryResults(results))
 	return nil
 }
 
@@ -176,6 +177,8 @@ type SynonymDumpCmd struct {
 	val map[string][]string
 }
 
+var _ redis.Cmder = (*SynonymDumpCmd)(nil)
+
 func NewSynonymDumpCmd(ctx context.Context, args ...interface{}) *SynonymDumpCmd {
 	return &SynonymDumpCmd{
 		Cmd: *redis.NewCmd(ctx, args...),
@@ -218,16 +221,46 @@ func (cmd *SynonymDumpCmd) Result() (map[string][]string, error) {
 *******************************************************************************/
 
 type InfoCmd struct {
-	redis.SliceCmd
+	redis.MapStringInterfaceCmd
+	val *Info
 }
 
 func NewInfoCmd(ctx context.Context, args ...interface{}) *InfoCmd {
 	return &InfoCmd{
-		SliceCmd: *redis.NewSliceCmd(ctx, args...),
+		MapStringInterfaceCmd: *redis.NewMapStringInterfaceCmd(ctx, args...),
 	}
 }
 
+func (c *InfoCmd) SetVal(i *Info) {
+	c.val = i
+}
+
+func (c *InfoCmd) Val() *Info {
+	return c.val
+}
+
+func (c *InfoCmd) Result() (*Info, error) {
+	return c.Val(), c.Err()
+}
+
 func (c *InfoCmd) postProcess() error {
+	info := Info{}
+	config := mapstructure.DecoderConfig{
+		DecodeHook:           mapstructure.ComposeDecodeHookFunc(internal.StringToDurationHookFunc(), internal.StringToMapHookFunc()),
+		WeaklyTypedInput:     true,
+		Result:               &info,
+		IgnoreUntaggedFields: true,
+	}
+	if decoder, err := mapstructure.NewDecoder(&config); err != nil {
+		return err
+	} else if err := decoder.Decode(c.MapStringInterfaceCmd.Val()); err != nil {
+		return err
+	}
+
+	info.Index = *NewIndexOptions()
+	info.Index.parseInfo(c.MapStringInterfaceCmd.Val())
+
+	c.SetVal(&info)
 	return nil
 }
 

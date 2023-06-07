@@ -132,25 +132,25 @@ func createHashIndexes() {
 	fmt.Println("Generating Hash Indexes...")
 	Expect(client.FTCreate(ctx, "hcustomers", grstack.NewIndexBuilder().
 		Prefix("haccount:").
-		Schema(grstack.TagAttribute{
+		Schema(&grstack.TagAttribute{
 			Name:     "account_id",
 			Alias:    "id",
-			Sortable: true}).Schema(grstack.TextAttribute{Name: "customer",
-		Sortable: true}).Schema(grstack.TextAttribute{
+			Sortable: true}).Schema(&grstack.TextAttribute{Name: "customer",
+		Sortable: true}).Schema(&grstack.TextAttribute{
 		Name:     "email",
-		Sortable: true}).Schema(grstack.TagAttribute{
+		Sortable: true}).Schema(&grstack.TagAttribute{
 		Name:     "account_owner",
 		Alias:    "owner",
-		Sortable: true}).Schema(grstack.NumericAttribute{
+		Sortable: true}).Schema(&grstack.NumericAttribute{
 		Name:     "balance",
 		Sortable: true,
 	}).Options()).Err()).NotTo(HaveOccurred())
 
 	Expect(client.FTCreate(ctx, "hdocs", grstack.NewIndexBuilder().
 		Prefix("hcommand:").
-		Schema(grstack.TagAttribute{
+		Schema(&grstack.TagAttribute{
 			Name:     "group",
-			Sortable: true}).Schema(grstack.TextAttribute{
+			Sortable: true}).Schema(&grstack.TextAttribute{
 		Name:     "command",
 		Sortable: true}).Options()).Err()).NotTo(HaveOccurred())
 
@@ -162,23 +162,23 @@ func createJSONIndexes() {
 	cmd := client.FTCreate(ctx, "jcustomers", grstack.NewIndexBuilder().
 		On("json").
 		Prefix("jaccount:").
-		Schema(grstack.TagAttribute{
+		Schema(&grstack.TagAttribute{
 			Name:     "$.account_id",
 			Alias:    "id",
 			Sortable: true}).
-		Schema(grstack.TextAttribute{
+		Schema(&grstack.TextAttribute{
 			Name:     "$.customer",
 			Alias:    "customer",
 			Sortable: true}).
-		Schema(grstack.TextAttribute{
+		Schema(&grstack.TextAttribute{
 			Name:     "$.email",
 			Alias:    "email",
 			Sortable: true}).
-		Schema(grstack.TagAttribute{
+		Schema(&grstack.TagAttribute{
 			Name:     "$.account_owner",
 			Alias:    "owner",
 			Sortable: true}).
-		Schema(grstack.NumericAttribute{
+		Schema(&grstack.NumericAttribute{
 			Name:     "$.balance",
 			Alias:    "balance",
 			Sortable: true,
@@ -187,9 +187,9 @@ func createJSONIndexes() {
 
 	Expect(client.FTCreate(ctx, "jdocs", grstack.NewIndexBuilder().
 		Prefix("jcommand:").
-		Schema(grstack.TagAttribute{
+		Schema(&grstack.TagAttribute{
 			Name:     "$.group",
-			Sortable: true}).Schema(grstack.TextAttribute{
+			Sortable: true}).Schema(&grstack.TextAttribute{
 		Name:     "$.command",
 		Sortable: true}).Options()).Err()).NotTo(HaveOccurred())
 
@@ -203,7 +203,7 @@ func createJSONIndexes() {
 		grstack.NewIndexBuilder().
 			On("json").
 			Prefix("jcomplex").
-			Schema(grstack.NumericAttribute{
+			Schema(&grstack.NumericAttribute{
 				Name:     "$..data",
 				Alias:    "datum",
 				Sortable: true,
@@ -213,7 +213,9 @@ func createJSONIndexes() {
 
 func TestFtsearch(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Ftsearch Suite")
+	suiteConfig, reportConfig := GinkgoConfiguration()
+	suiteConfig.LabelFilter = "rebuild"
+	RunSpecs(t, "Ftsearch Suite", suiteConfig, reportConfig)
 }
 
 var _ = BeforeSuite(func() {
