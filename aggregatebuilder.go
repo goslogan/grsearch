@@ -53,7 +53,7 @@ func (a *AggregateBuilder) Verbatim() *AggregateBuilder {
 }
 
 // Limit sets the result limit
-func (a *AggregateBuilder) Limit(offset, num int64) *AggregateBuilder {
+func (a *AggregateBuilder) Limit(offset, num int) *AggregateBuilder {
 	a.opts.Steps = append(a.opts.Steps, &Limit{Offset: offset, Num: num})
 	return a
 }

@@ -43,7 +43,7 @@ func (c cmdable) FTSearch(ctx context.Context, index string, query string, qryOp
 	}
 	args = append(args, qryOptions.serialize()...)
 
-	cmd := NewQueryCmd(ctx, args...)
+	cmd := NewQueryCmd(ctx, c, args...)
 	cmd.options = qryOptions
 
 	_ = c(ctx, cmd)
@@ -59,7 +59,7 @@ func (c cmdable) FTSearchJSON(ctx context.Context, index string, query string, q
 	qryOptions.json = true
 	args = append(args, qryOptions.serialize()...)
 
-	cmd := NewQueryCmd(ctx, args...)
+	cmd := NewQueryCmd(ctx, c, args...)
 	cmd.options = qryOptions
 
 	_ = c(ctx, cmd)

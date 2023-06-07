@@ -231,12 +231,12 @@ func (q *QueryFilter) serialize() []interface{} {
 
 // queryLimit defines the results by offset and number.
 type Limit struct {
-	Offset int64
-	Num    int64
+	Offset int
+	Num    int
 }
 
 // NewQueryLimit returns an initialized limit struct
-func NewLimit(first int64, num int64) *Limit {
+func NewLimit(first int, num int) *Limit {
 	return &Limit{Offset: first, Num: num}
 }
 

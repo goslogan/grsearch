@@ -10,20 +10,22 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-type QueryCmd struct {
-	redis.SliceCmd
-	val     QueryResults
-	options *QueryOptions
-	count   int64 // Contains the total number of results if the query was successful
-}
-
 /*******************************************************************************
  ***** QueryCmd 														  ******
  *******************************************************************************/
 
+type QueryCmd struct {
+	redis.SliceCmd
+	val     QueryResults
+	options *QueryOptions
+	process cmdable // used to initialise iterator
+	count   int64   // Contains the total number of results if the query was successful
+}
+
 // NewQueryCmd returns an initialised query command.
-func NewQueryCmd(ctx context.Context, args ...interface{}) *QueryCmd {
+func NewQueryCmd(ctx context.Context, process cmdable, args ...interface{}) *QueryCmd {
 	return &QueryCmd{
+		process:  process,
 		SliceCmd: *redis.NewSliceCmd(ctx, args...),
 	}
 }
@@ -58,6 +60,11 @@ func (cmd *QueryCmd) SetCount(count int64) {
 // Count returns the total number of results from a successful query.
 func (cmd *QueryCmd) Count() int64 {
 	return cmd.count
+}
+
+// Iterator returns an iterator for the search.
+func (cmd *QueryCmd) Iterator(ctx context.Context) *SearchIterator {
+	return NewSearchIterator(ctx, cmd)
 }
 
 func (cmd *QueryCmd) postProcess() error {

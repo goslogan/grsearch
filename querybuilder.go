@@ -22,7 +22,7 @@ func (a *QueryBuilder) Options() *QueryOptions {
 
 // Limit adds a limit to a query, returning the Query with
 // the limit added (to allow chaining)
-func (q *QueryBuilder) Limit(first int64, num int64) *QueryBuilder {
+func (q *QueryBuilder) Limit(first int, num int) *QueryBuilder {
 	q.opts.Limit = NewLimit(first, num)
 	return q
 }
@@ -89,7 +89,7 @@ func (q *QueryBuilder) Highlight(fields []string) *QueryBuilder {
 }
 
 // SortBy sets the value of the sortby option to the query.
-func (q *QueryBuilder) WithSortBy(field string) *QueryBuilder {
+func (q *QueryBuilder) SortBy(field string) *QueryBuilder {
 	q.opts.SortBy = field
 	return q
 }

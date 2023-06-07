@@ -1,12 +1,34 @@
 package grstack
 
+// iterators - how to implement. search results do not support cursors like aggregates
+// so we can implement an iterator insipired by the Scan iterator. In this version we need
+// to work with search offsets and limits instead of iterator values though.
+// How...
+// 	1 do an initial search and call Iterator.
+//  2 QueryCmd will then initialise an iterator with itself
+//  3 Each time we call next we need to check if pos >= the number of results (from Limit in the options)
+//  4 If equal we need to take the search options to create a new QueryCmd where we update the offset
+//    and run the search again.
+
 import "context"
 
 // SearchIterator is used to incrementally iterate over a collection of elements.
 type SearchIterator struct {
-	cmd   *QueryCmd
-	pos   int64
-	limit *Limit
+	cmd     *QueryCmd
+	pos     int
+	curPos  int64
+	maxPos  int64
+	process cmdable
+}
+
+// NewSearchIterator returns a configured iterator for QueryCmd
+func NewSearchIterator(ctx context.Context, cmd *QueryCmd) *SearchIterator {
+	return &SearchIterator{
+		cmd:    cmd,
+		pos:    0,
+		curPos: 0,
+		maxPos: cmd.Count(),
+	}
 }
 
 // Err returns the last iterator error, if any.
@@ -21,51 +43,41 @@ func (it *SearchIterator) Next(ctx context.Context) bool {
 		return false
 	}
 
+	// If we are at the end of the results, return now.
+	if it.curPos >= it.maxPos {
+		return false
+	}
+
 	// Advance cursor, check if we are still within range.
-	if it.pos < it.cmd.options.Limit.Offset {
+	if it.pos <= it.cmd.options.Limit.Num {
 		it.pos++
+		it.curPos++
 		return true
 	}
 
-	for {
-
-		// Return if there is no more data to fetch.
-		if len(it.cmd.Val()) == 0 {
-			return false
+	if it.cmd.options.Limit == nil {
+		it.cmd.options.Limit = &Limit{
+			Num:    DefaultLimit,
+			Offset: DefaultOffset + DefaultLimit,
 		}
-
-		// Add the limit to the offset and run the command again.
-		it.limit.Offset += it.limit.Num
-		it.cmd.options.Limit = it.limit
-		it.cmd.args = it.cmd.options.serialize
-
-		// Fetch next page.
-		switch it.cmd.args[0] {
-		case "scan", "qscan":
-			it.cmd.args[1] = it.cmd.cursor
-		default:
-			it.cmd.args[2] = it.cmd.cursor
-		}
-
-		err := it.cmd.process(ctx, it.cmd)
-		if err != nil {
-			return false
-		}
-
-		it.pos = 1
-
-		// Redis can occasionally return empty page.
-		if len(it.cmd.page) > 0 {
-			return true
-		}
+	} else {
+		it.cmd.options.Limit.Offset += it.cmd.options.Limit.Num
 	}
+
+	err := it.process(ctx, it.cmd)
+	if err != nil {
+		return false
+	}
+
+	it.pos = 0
+	return true
 }
 
 // Val returns the key/field at the current cursor position.
-func (it *SearchIterator) Val() string {
-	var v string
-	if it.cmd.Err() == nil && it.pos > 0 && it.pos <= len(it.cmd.page) {
-		v = it.cmd.page[it.pos-1]
+func (it *SearchIterator) Val() *QueryResult {
+	var v *QueryResult
+	if it.cmd.Err() == nil && it.pos > 0 && it.pos <= it.cmd.options.Limit.Num {
+		v = it.cmd.val[it.pos-1]
 	}
 	return v
 }
