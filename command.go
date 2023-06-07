@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/goslogan/grstack/internal"
+	"github.com/mitchellh/mapstructure"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -176,6 +177,8 @@ type SynonymDumpCmd struct {
 	val map[string][]string
 }
 
+var _ redis.Cmder = (*SynonymDumpCmd)(nil)
+
 func NewSynonymDumpCmd(ctx context.Context, args ...interface{}) *SynonymDumpCmd {
 	return &SynonymDumpCmd{
 		Cmd: *redis.NewCmd(ctx, args...),
@@ -218,16 +221,46 @@ func (cmd *SynonymDumpCmd) Result() (map[string][]string, error) {
 *******************************************************************************/
 
 type InfoCmd struct {
-	redis.SliceCmd
+	redis.MapStringInterfaceCmd
+	val *Info
 }
 
 func NewInfoCmd(ctx context.Context, args ...interface{}) *InfoCmd {
 	return &InfoCmd{
-		SliceCmd: *redis.NewSliceCmd(ctx, args...),
+		MapStringInterfaceCmd: *redis.NewMapStringInterfaceCmd(ctx, args...),
 	}
 }
 
+func (c *InfoCmd) SetVal(i *Info) {
+	c.val = i
+}
+
+func (c *InfoCmd) Val() *Info {
+	return c.val
+}
+
+func (c *InfoCmd) Result() (*Info, error) {
+	return c.Val(), c.Err()
+}
+
 func (c *InfoCmd) postProcess() error {
+	info := Info{}
+	config := mapstructure.DecoderConfig{
+		DecodeHook:           mapstructure.ComposeDecodeHookFunc(internal.StringToDurationHookFunc(), internal.StringToMapHookFunc()),
+		WeaklyTypedInput:     true,
+		Result:               &info,
+		IgnoreUntaggedFields: true,
+	}
+	if decoder, err := mapstructure.NewDecoder(&config); err != nil {
+		return err
+	} else if err := decoder.Decode(c.MapStringInterfaceCmd.Val()); err != nil {
+		return err
+	}
+
+	info.Index = *NewIndexOptions()
+	info.Index.parseInfo(c.MapStringInterfaceCmd.Val())
+
+	c.SetVal(&info)
 	return nil
 }
 

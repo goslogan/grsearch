@@ -112,7 +112,7 @@ func (c cmdable) FTList(ctx context.Context) *redis.StringSliceCmd {
 // FTInfo returns information about an index
 func (c cmdable) FTInfo(ctx context.Context, index string) *InfoCmd {
 	args := []interface{}{"ft.info", index}
-	cmd := NewInfoCmd(ctx, args)
+	cmd := NewInfoCmd(ctx, args...)
 	_ = c(ctx, cmd)
 	return cmd
 }
