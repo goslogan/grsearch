@@ -64,7 +64,7 @@ func (cmd *QueryCmd) Count() int64 {
 
 // Iterator returns an iterator for the search.
 func (cmd *QueryCmd) Iterator(ctx context.Context) *SearchIterator {
-	return NewSearchIterator(ctx, cmd)
+	return NewSearchIterator(ctx, cmd, cmd.process)
 }
 
 func (cmd *QueryCmd) postProcess() error {

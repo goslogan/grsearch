@@ -14,20 +14,27 @@ import "context"
 
 // SearchIterator is used to incrementally iterate over a collection of elements.
 type SearchIterator struct {
-	cmd     *QueryCmd
+	options *QueryOptions
+	index   string
+	query   string
 	pos     int
 	curPos  int64
 	maxPos  int64
 	process cmdable
+	cmd     *QueryCmd
 }
 
 // NewSearchIterator returns a configured iterator for QueryCmd
-func NewSearchIterator(ctx context.Context, cmd *QueryCmd) *SearchIterator {
+func NewSearchIterator(ctx context.Context, cmd *QueryCmd, process cmdable) *SearchIterator {
 	return &SearchIterator{
-		cmd:    cmd,
-		pos:    0,
-		curPos: 0,
-		maxPos: cmd.Count(),
+		cmd:     cmd,
+		options: cmd.options,
+		index:   cmd.Args()[1].(string),
+		query:   cmd.Args()[2].(string),
+		process: process,
+		pos:     0,
+		curPos:  1,
+		maxPos:  cmd.Count(),
 	}
 }
 
@@ -43,41 +50,40 @@ func (it *SearchIterator) Next(ctx context.Context) bool {
 		return false
 	}
 
-	// If we are at the end of the results, return now.
-	if it.curPos >= it.maxPos {
-		return false
-	}
+	for {
 
-	// Advance cursor, check if we are still within range.
-	if it.pos <= it.cmd.options.Limit.Num {
-		it.pos++
-		it.curPos++
-		return true
-	}
-
-	if it.cmd.options.Limit == nil {
-		it.cmd.options.Limit = &Limit{
-			Num:    DefaultLimit,
-			Offset: DefaultOffset + DefaultLimit,
+		if len(it.cmd.Val()) == 0 {
+			return false
 		}
-	} else {
-		it.cmd.options.Limit.Offset += it.cmd.options.Limit.Num
-	}
 
-	err := it.process(ctx, it.cmd)
-	if err != nil {
-		return false
-	}
+		if it.pos < len(it.cmd.Val()) {
+			it.pos++
+			return true
+		}
 
-	it.pos = 0
-	return true
+		if it.options.Limit == nil {
+			it.options.Limit = &Limit{
+				Num:    DefaultLimit,
+				Offset: DefaultOffset + DefaultLimit,
+			}
+		} else {
+			it.options.Limit.Offset += it.options.Limit.Num
+		}
+
+		it.cmd = it.process.FTSearch(ctx, it.index, it.query, it.options)
+		if it.Err() != nil {
+			return false
+		}
+		it.pos = 0
+
+	}
 }
 
 // Val returns the key/field at the current cursor position.
 func (it *SearchIterator) Val() *QueryResult {
 	var v *QueryResult
-	if it.cmd.Err() == nil && it.pos > 0 && it.pos <= it.cmd.options.Limit.Num {
-		v = it.cmd.val[it.pos-1]
+	if it.cmd.Err() == nil && it.pos > 0 && it.pos <= it.options.Limit.Num {
+		v = it.cmd.Val()[it.pos-1]
 	}
 	return v
 }
