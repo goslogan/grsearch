@@ -150,10 +150,9 @@ func createHashIndexes() {
 		Prefix("hcommand:").
 		Schema(&grstack.TagAttribute{
 			Name:     "group",
-			Sortable: true}).
-		Schema(&grstack.TextAttribute{
-			Name:     "command",
-			Sortable: true}).Options()).Err()).NotTo(HaveOccurred())
+			Sortable: true}).Schema(&grstack.TextAttribute{
+		Name:     "command",
+		Sortable: true}).Options()).Err()).NotTo(HaveOccurred())
 
 }
 
@@ -215,7 +214,6 @@ func createJSONIndexes() {
 func TestFtsearch(t *testing.T) {
 	RegisterFailHandler(Fail)
 	suiteConfig, reportConfig := GinkgoConfiguration()
-	suiteConfig.LabelFilter = "iterator"
 	RunSpecs(t, "Ftsearch Suite", suiteConfig, reportConfig)
 }
 

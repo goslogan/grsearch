@@ -109,7 +109,7 @@ var _ = Describe("Query options", Label("hash", "query", "ft.search"), func() {
 		Expect(cmd.Val().Key("haccount:806396").Explanation).NotTo(BeNil())
 	})
 
-	It("can sort results", func() {
+	It("can sort results", Label("sort"), func() {
 		results := []string{}
 		opts := grstack.NewQueryOptions()
 		opts.NoContent = true
@@ -121,6 +121,37 @@ var _ = Describe("Query options", Label("hash", "query", "ft.search"), func() {
 		}
 		Expect(results).To(ConsistOf([]string{"haccount:1339089", "haccount:239155", "haccount:575072", "haccount:765279", "haccount:1826581", "haccount:1371128", "haccount:1121175", "haccount:886088", "haccount:806396", "haccount:507187"}))
 
+	})
+
+	It("can limit to the first n results", Label("limit"), func() {
+		results := []string{}
+		opts := grstack.NewQueryOptions()
+		opts.NoContent = true
+		opts.Limit = &grstack.Limit{Num: 3, Offset: 0}
+		opts.SortBy = "customer"
+		cmd := client.FTSearch(ctx, "hcustomers", `@owner:{lara\.croft}`, opts)
+		Expect(cmd.Err()).NotTo(HaveOccurred())
+		Expect(cmd.Val()).To(HaveLen(3))
+		for _, k := range cmd.Val() {
+			results = append(results, k.Key)
+		}
+		Expect(results).To(ConsistOf([]string{"haccount:1339089", "haccount:239155", "haccount:575072"}))
+
+	})
+
+	It("can return n results from an offset", Label("limit"), func() {
+		results := []string{}
+		opts := grstack.NewQueryOptions()
+		opts.NoContent = true
+		opts.Limit = &grstack.Limit{Num: 3, Offset: 3}
+		opts.SortBy = "customer"
+		cmd := client.FTSearch(ctx, "hcustomers", `@owner:{lara\.croft}`, opts)
+		Expect(cmd.Err()).NotTo(HaveOccurred())
+		Expect(cmd.Val()).To(HaveLen(3))
+		for _, k := range cmd.Val() {
+			results = append(results, k.Key)
+		}
+		Expect(results).To(ConsistOf([]string{"haccount:765279", "haccount:1826581", "haccount:1371128"}))
 	})
 
 	It("can handle the RETURN subcommand", func() {
