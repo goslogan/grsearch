@@ -63,11 +63,11 @@ const (
 // NewQuery creates a new query with defaults set
 func NewQueryOptions() *QueryOptions {
 	return &QueryOptions{
-		Limit:   NewLimit(DefaultOffset, DefaultLimit),
-		Slop:    noSlop,
-		SortBy:  SortAsc,
-		Dialect: defaultDialect,
-		Params:  map[string]interface{}{},
+		Limit:     NewLimit(DefaultOffset, DefaultLimit),
+		Slop:      noSlop,
+		SortOrder: SortAsc,
+		Dialect:   defaultDialect,
+		Params:    map[string]interface{}{},
 	}
 }
 
@@ -117,6 +117,13 @@ func (q *QueryOptions) serialize() []interface{} {
 	args = append(args, internal.SerializeCountedArgs("infields", false, q.InFields)...)
 
 	args = q.appendFlagArg(args, q.ExplainScore && q.WithScores, "EXPLAINSCORE")
+
+	if q.SortBy != "" {
+		args = append(args, "sortby", q.SortBy)
+		if q.SortOrder != "" {
+			args = append(args, q.SortOrder)
+		}
+	}
 
 	if q.Limit != nil {
 		args = append(args, q.Limit.serialize()...)

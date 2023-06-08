@@ -1,6 +1,8 @@
 package grstack_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -66,6 +68,7 @@ var _ = Describe("Info", Label("search", "ft.info"), func() {
 		Expect(cmd1.Err()).NotTo(HaveOccurred())
 		cmd2 := client.FTCreate(ctx, "hcustomersdup", &cmd1.Val().Index)
 		Expect(cmd2.Err()).NotTo(HaveOccurred())
+		time.Sleep(2 * time.Second)
 		cmd3 := client.FTInfo(ctx, "hcustomersdup")
 		Expect(cmd3.Err()).NotTo(HaveOccurred())
 		Expect(cmd1.Val().Index).To(Equal(cmd3.Val().Index))
