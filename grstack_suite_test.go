@@ -67,7 +67,7 @@ func createJSONTestData() {
 		Expect(err).NotTo(HaveOccurred())
 		var js bytes.Buffer
 		Expect(t.ExecuteTemplate(&js, "customer", row)).NotTo(HaveOccurred())
-		Expect(redis.JSONSet(ctx, fmt.Sprintf("jaccount:%s", row[4]), "$", js.String()).Err()).NotTo(HaveOccurred())
+		Expect(client.JSONSet(ctx, fmt.Sprintf("jaccount:%s", row[4]), "$", js.String()).Err()).NotTo(HaveOccurred())
 	}
 
 	csvData = strings.NewReader(commandData)
@@ -214,7 +214,7 @@ func createJSONIndexes() {
 func TestFtsearch(t *testing.T) {
 	RegisterFailHandler(Fail)
 	suiteConfig, reportConfig := GinkgoConfiguration()
-	suiteConfig.LabelFilter = "ft.info"
+	// suiteConfig.LabelFilter = "ft.info"
 	RunSpecs(t, "Ftsearch Suite", suiteConfig, reportConfig)
 }
 
