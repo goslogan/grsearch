@@ -19,7 +19,7 @@ type QueryCmd struct {
 	val     QueryResults
 	options *QueryOptions
 	process cmdable // used to initialise iterator
-	count   int64   // Contains the total number of results if the query was successful
+	count   int64   // contains the total number of results if the query was successful
 }
 
 // NewQueryCmd returns an initialised query command.
@@ -357,9 +357,6 @@ func NewJSONStringSliceCmd(ctx context.Context, args ...interface{}) *JSONString
 	}
 }
 
-// postProcess converts an array of bulk string responses into
-// an array of arrays of interfaces.
-// an array of json.RawMessage objects
 func (c *JSONStringSliceCmd) postProcess() error {
 
 	// nil response from JSON.(M)GET (c.StringCmd.err will be "redis: nil")

@@ -8,7 +8,6 @@ import (
 )
 
 type SearchCmdAble interface {
-	redis.Cmdable
 	FTSearch(ctx context.Context, index string, query string, options *QueryOptions) *QueryCmd
 	FTAggregate(ctx context.Context, index string, query string, options *AggregateOptions) *QueryCmd
 	FTDropIndex(ctx context.Context, index string, dropDocuments bool) *redis.BoolCmd

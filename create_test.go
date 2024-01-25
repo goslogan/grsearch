@@ -14,7 +14,7 @@ var _ = Describe("Create", Label("json", "query", "ft.create"), func() {
 			Alias: "bar",
 		}).On("json").Options())
 		Expect(createCmd.Err()).NotTo(HaveOccurred())
-		Expect(createCmd.String()).To(Equal("ft.create jsimple on json score 1 schema $.foo as bar text: true"))
+		Expect(createCmd.Args()).To(Equal("ft.create jsimple on json score 1 schema $.foo as bar text: true"))
 	})
 
 	It("can build a json index with options", func() {

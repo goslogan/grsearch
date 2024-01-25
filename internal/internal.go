@@ -9,25 +9,6 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-// serializeCountedArgs is used to serialize a string array to
-// NAME <count> values. If incZero is true then NAME 0 will be generated
-// otherwise empty results will not be generated.
-func SerializeCountedArgs(name string, incZero bool, args []string) []interface{} {
-	if len(args) > 0 || incZero {
-		result := make([]interface{}, 2+len(args))
-
-		result[0] = name
-		result[1] = len(args)
-		for pos, val := range args {
-			result[pos+2] = val
-		}
-
-		return result
-	} else {
-		return nil
-	}
-}
-
 func ExtractJSONValue(val string) ([]interface{}, error) {
 
 	if val == "" {
@@ -40,15 +21,6 @@ func ExtractJSONValue(val string) ([]interface{}, error) {
 		return objects, nil
 	}
 
-}
-
-// AppendStringArg appends the name and value if value is not empty
-func AppendStringArg(args []interface{}, name, value string) []interface{} {
-	if value != "" {
-		return append(args, name, value)
-	} else {
-		return args
-	}
 }
 
 // StringToDurationHookFunc returns a function that decodes strings to

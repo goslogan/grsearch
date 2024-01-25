@@ -20,16 +20,16 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-//go:embed customers_test.csv
+//go:embed testdata/customers_test.csv
 var customerData string
 
-//go:embed customers_test.template
+//go:embed testdata/customers_test.template
 var customerJSON string
 
-//go:embed commands_test.csv
+//go:embed testdata/commands_test.csv
 var commandData string
 
-//go:embed commands_test.template
+//go:embed testdata/commands_test.template
 var commandJSON string
 
 var client *grstack.Client
@@ -67,7 +67,7 @@ func createJSONTestData() {
 		Expect(err).NotTo(HaveOccurred())
 		var js bytes.Buffer
 		Expect(t.ExecuteTemplate(&js, "customer", row)).NotTo(HaveOccurred())
-		Expect(client.JSONSet(ctx, fmt.Sprintf("jaccount:%s", row[4]), "$", js.String()).Err()).NotTo(HaveOccurred())
+		Expect(redis.JSONSet(ctx, fmt.Sprintf("jaccount:%s", row[4]), "$", js.String()).Err()).NotTo(HaveOccurred())
 	}
 
 	csvData = strings.NewReader(commandData)
@@ -214,7 +214,7 @@ func createJSONIndexes() {
 func TestFtsearch(t *testing.T) {
 	RegisterFailHandler(Fail)
 	suiteConfig, reportConfig := GinkgoConfiguration()
-	suiteConfig.LabelFilter = "iterator"
+	suiteConfig.LabelFilter = "ft.info"
 	RunSpecs(t, "Ftsearch Suite", suiteConfig, reportConfig)
 }
 
