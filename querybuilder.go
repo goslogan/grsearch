@@ -22,7 +22,7 @@ func (a *QueryBuilder) Options() *QueryOptions {
 
 // Limit adds a limit to a query, returning the Query with
 // the limit added (to allow chaining)
-func (q *QueryBuilder) Limit(first int, num int) *QueryBuilder {
+func (q *QueryBuilder) Limit(first int64, num int64) *QueryBuilder {
 	q.opts.Limit = NewLimit(first, num)
 	return q
 }

@@ -41,11 +41,11 @@ func (cmd *QueryCmd) Result() (QueryResults, error) {
 	return cmd.Val(), cmd.Err()
 }
 
-func (cmd *QueryCmd) Len() int {
+func (cmd *QueryCmd) Len() int64 {
 	if cmd.Err() != nil {
 		return 0
 	} else {
-		return len(cmd.val)
+		return int64(len(cmd.val.Results))
 	}
 }
 
@@ -71,59 +71,91 @@ func (cmd *QueryCmd) postProcess() error {
 	if cmd.Err() != nil {
 		return cmd.Err()
 	}
-	rawResults := cmd.SliceCmd.Val()
-	resultSize := cmd.options.resultSize()
-	resultCount := rawResults[0].(int64)
-	results := make([]*QueryResult, 0)
 
-	for i := 1; i < len(rawResults); i += resultSize {
+	rawResults := cmd.SliceCmd.Val()
+	var values *QueryResults
+	var err error
+
+	// RESP2 or RESP3?
+	if check, ok := rawResults[0].(string); ok && check == "attributes" {
+		values, err = cmd.postprocessRESP3Response(rawResults)
+	} else {
+		values, err = cmd.postprocessRESP2Response(rawResults)
+	}
+	if err != nil {
+		return err
+	}
+
+	cmd.SetVal(*values)
+	return nil
+}
+
+func (cmd *QueryCmd) postprocessRESP3Response(baseResponse interface{}) (*QueryResults, error) {
+	return nil, nil
+}
+
+func (cmd *QueryCmd) postprocessRESP2Response(baseResponse interface{}) (*QueryResults, error) {
+
+	if _, ok := baseResponse.([]interface{}); !ok {
+		return nil, fmt.Errorf("redis: FT.SEARCH response is not a slice")
+	}
+
+	output := QueryResults{Format: "STRING"}
+	results := []*QueryResult{}
+
+	response := baseResponse.([]interface{})
+	output.TotalResults = response[0].(int64)
+
+	for i := 1; i < len(response); i += cmd.options.resultSize() {
+
+		current := &QueryResult{}
 		j := 0
 		var score float64 = 0
 		var explanation []interface{}
 
-		key := rawResults[i+j].(string)
+		current.Key = response[i+j].(string)
 		j++
 
 		if cmd.options.WithScores {
 			if cmd.options.ExplainScore {
-				scoreData := rawResults[i+j].([]interface{})
+				scoreData := response[i+j].([]interface{})
 				score = scoreData[0].(float64)
 				explanation = scoreData[1].([]interface{})
-
+				current.Score = score
+				current.Explanation = explanation
 			} else {
-				score, _ = rawResults[i+j].(float64)
+				current.Score, _ = response[i+j].(float64)
 			}
 			j++
 		}
 
-		result := QueryResult{
-			Key:         key,
-			Score:       score,
-			Explanation: explanation,
-			Values:      nil,
-		}
-
 		if !cmd.options.NoContent {
-
-			if cmd.options.json {
-				result.Values = &JSONQueryValue{}
+			if vals, ok := response[i+j].([]interface{}); !ok {
+				return nil, fmt.Errorf("redis: response content cannot be parsed")
 			} else {
-				result.Values = &HashQueryValue{}
+				var result ResultValue
+				if cmd.options.json {
+					result = &JSONQueryValue{}
+				} else {
+					result = &HashQueryValue{}
+				}
+				err := result.parse(2, vals)
+				if err != nil {
+					return nil, err
+				}
+				current.Values = result
+
 			}
 
-			if err := result.Values.parse(rawResults[i+j].([]interface{})); err != nil {
-				return err
-			}
 		}
 
-		results = append(results, &result)
+		results = append(results, current)
 		j++
 
 	}
 
-	cmd.SetCount(resultCount)
-	cmd.SetVal(QueryResults(results))
-	return nil
+	output.SetResults(results)
+	return &output, nil
 }
 
 /*******************************************************************************

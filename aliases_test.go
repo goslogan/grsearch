@@ -25,12 +25,12 @@ var _ = Describe("Aliases", func() {
 		Expect(cmd.Err()).NotTo((HaveOccurred()))
 		search := client.FTSearch(ctx, "docalias", "@command:SET", grstack.NewQueryOptions())
 		Expect(search.Err()).NotTo(HaveOccurred())
-		Expect(len(search.Val())).To(BeZero())
+		Expect(search.Len()).To(BeZero())
 		cmd = client.FTAliasUpdate(ctx, "docalias", "hdocs")
 		Expect(cmd.Err()).NotTo((HaveOccurred()))
 		search = client.FTSearch(ctx, "docalias", "@command:SET", grstack.NewQueryOptions())
 		Expect(search.Err()).NotTo(HaveOccurred())
-		Expect(len(search.Val())).ToNot(BeZero())
+		Expect(search.Len()).ToNot(BeZero())
 
 	})
 

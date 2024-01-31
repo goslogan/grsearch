@@ -17,7 +17,7 @@ type SearchIterator struct {
 	options *QueryOptions
 	index   string
 	query   string
-	pos     int
+	pos     int64
 	curPos  int64
 	maxPos  int64
 	process cmdable
@@ -52,11 +52,11 @@ func (it *SearchIterator) Next(ctx context.Context) bool {
 
 	for {
 
-		if len(it.cmd.Val()) == 0 {
+		if it.cmd.Len() == 0 {
 			return false
 		}
 
-		if it.pos < len(it.cmd.Val()) {
+		if it.pos < it.cmd.Len() {
 			it.pos++
 			return true
 		}
@@ -83,7 +83,7 @@ func (it *SearchIterator) Next(ctx context.Context) bool {
 func (it *SearchIterator) Val() *QueryResult {
 	var v *QueryResult
 	if it.cmd.Err() == nil && it.pos > 0 && it.pos <= it.options.Limit.Num {
-		v = it.cmd.Val()[it.pos-1]
+		v = it.cmd.Val().Results[it.pos-1]
 	}
 	return v
 }

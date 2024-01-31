@@ -12,12 +12,12 @@ import (
 var _ = Describe("Query basics", Label("hash", "query", "ft.search"), func() {
 
 	It("doesn't raise an error on a valid query", func() {
-		Expect(client.FTSearch(ctx, "hcustomers", `@email:ejowers0\@unblog\.fr`, nil).
-			Err()).To(Not(HaveOccurred()))
+		cmd := client.FTSearch(ctx, "hcustomers", `@email:ejowers0\@unblog\.fr`, nil)
+		Expect(cmd.Err()).To(Not(HaveOccurred()))
 	})
-	It("can generate a valid query", func() {
-		Expect(client.FTSearch(ctx, "hcustomers", `@email:ejowers0@unblog.fr`, nil).
-			String()).To(ContainSubstring(`ft.search hcustomers @email:ejowers0@unblog.fr`))
+	It("can generate a valid query", Label("valid"), func() {
+		Expect(client.FTSearch(ctx, "hcustomers", `@email:ejowers0\@unblog\.fr`, nil).
+			String()).To(ContainSubstring(`FT.SEARCH hcustomers @email:ejowers0\@unblog\.fr`))
 	})
 
 	It("can search for a specific result by attribute", func() {
@@ -25,35 +25,40 @@ var _ = Describe("Query basics", Label("hash", "query", "ft.search"), func() {
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 	})
 
-	It("can return a single result", func() {
-		Expect(client.FTSearch(ctx, "hcustomers", `@email:ejowers0\@unblog\.fr`, nil).Len()).To(Equal(1))
+	It("can return a single result", Label("single"), func() {
+		cmd := client.FTSearch(ctx, "hcustomers", `@email:ejowers0\@unblog\.fr`, nil)
+		Expect(cmd.Val().TotalResults).To(Equal(int64(1)))
 	})
 
-	It("can return a map result", func() {
-		Expect(client.FTSearch(ctx, "hcustomers", `@id:{1121175}`, nil).Val()).To(Equal(
-			grstack.QueryResults{&grstack.QueryResult{
-				Key:         "haccount:1121175",
-				Score:       0,
-				Explanation: nil,
-				Values: &grstack.HashQueryValue{
-					Value: map[string]string{
-						"account_owner": "lara.croft",
-						"balance":       "927.00",
-						"customer":      "Kandace Korneichuk",
-						"email":         `kkorneichukc\@cpanel\.net`,
-						"ip":            `148\.140\.255\.235`,
-						"account_id":    "1121175",
-					}}}}))
+	It("can return a map result", Label("map"), func() {
+		results := &grstack.QueryResult{
+			Key:         "haccount:1121175",
+			Score:       0,
+			Explanation: nil,
+			Values: &grstack.HashQueryValue{
+				Value: map[string]string{
+					"account_owner": "lara.croft",
+					"balance":       "927.00",
+					"customer":      "Kandace Korneichuk",
+					"email":         `kkorneichukc\@cpanel\.net`,
+					"ip":            `148\.140\.255\.235`,
+					"account_id":    "1121175",
+				}}}
+		cmd := client.FTSearch(ctx, "hcustomers", `@id:{1121175}`, nil)
+		Expect(cmd.Err()).NotTo(HaveOccurred())
+		Expect(cmd.Val().TotalResults).To(Equal(int64(1)))
+		Expect(cmd.Val().Results[0]).To(Equal(results))
 	})
 
 	It("will fail quietly with no search defined", func() {
 		cmd := client.FTSearch(ctx, "hcustomers", "", nil)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
-		Expect(cmd.Len()).To(Equal(0))
+		Expect(cmd.Len()).To(Equal(int64(0)))
 	})
 
 	It("can return all the results for a given tag", func() {
-		Expect(client.FTSearch(ctx, "hcustomers", `@owner:{lara\.croft}`, nil).Len()).To(Equal(10))
+		cmd := client.FTSearch(ctx, "hcustomers", `@owner:{lara\.croft}`, nil)
+		Expect(cmd.Val().TotalResults).To(Equal(int64(10)))
 	})
 
 })
@@ -75,7 +80,7 @@ var _ = Describe("Query options", Label("hash", "query", "ft.search"), func() {
 			}))
 	})
 
-	It("will return scores - WITHSCORES", func() {
+	It("will return scores - WITHSCORES", Label("withscores"), func() {
 		opts := grstack.NewQueryOptions()
 		opts.WithScores = true
 		cmd := client.FTSearch(ctx, "hcustomers", `@id:{1121175}`, opts)
@@ -84,7 +89,7 @@ var _ = Describe("Query options", Label("hash", "query", "ft.search"), func() {
 		Expect(cmd.Val().Key("haccount:1121175").Score).Should(BeNumerically(">=", 1))
 	})
 
-	It("will return filtered results - FILTER (numeric)", func() {
+	It("will return filtered results - FILTER (numeric)", Label("filter"), func() {
 		opts := grstack.NewQueryOptions()
 		opts.NoContent = true
 		opts.Filters = []grstack.QueryFilter{
@@ -96,7 +101,7 @@ var _ = Describe("Query options", Label("hash", "query", "ft.search"), func() {
 		}
 		cmd := client.FTSearch(ctx, "hcustomers", `@owner:{lara\.croft}`, opts)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
-		Expect(len(cmd.Val())).To(Equal(2))
+		Expect(cmd.Val().TotalResults).To(Equal(int64(2)))
 	})
 
 	It("can explain a score", func() {
@@ -105,7 +110,7 @@ var _ = Describe("Query options", Label("hash", "query", "ft.search"), func() {
 		opts.ExplainScore = true
 		cmd := client.FTSearch(ctx, "hcustomers", `@owner:{lara\.croft}`, opts)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
-		Expect(len(cmd.Val())).NotTo(BeZero())
+		Expect(cmd.Val().TotalResults).NotTo(BeZero())
 		Expect(cmd.Val().Key("haccount:806396").Explanation).NotTo(BeNil())
 	})
 
@@ -116,7 +121,7 @@ var _ = Describe("Query options", Label("hash", "query", "ft.search"), func() {
 		opts.SortBy = "customer"
 		cmd := client.FTSearch(ctx, "hcustomers", `@owner:{lara\.croft}`, opts)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
-		for _, k := range cmd.Val() {
+		for _, k := range cmd.Val().Results {
 			results = append(results, k.Key)
 		}
 		Expect(results).To(ConsistOf([]string{"haccount:1339089", "haccount:239155", "haccount:575072", "haccount:765279", "haccount:1826581", "haccount:1371128", "haccount:1121175", "haccount:886088", "haccount:806396", "haccount:507187"}))
@@ -131,8 +136,8 @@ var _ = Describe("Query options", Label("hash", "query", "ft.search"), func() {
 		opts.SortBy = "customer"
 		cmd := client.FTSearch(ctx, "hcustomers", `@owner:{lara\.croft}`, opts)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
-		Expect(cmd.Val()).To(HaveLen(3))
-		for _, k := range cmd.Val() {
+		Expect(cmd.Val().Results).To(HaveLen(3))
+		for _, k := range cmd.Val().Results {
 			results = append(results, k.Key)
 		}
 		Expect(results).To(ConsistOf([]string{"haccount:1339089", "haccount:239155", "haccount:575072"}))
@@ -147,14 +152,22 @@ var _ = Describe("Query options", Label("hash", "query", "ft.search"), func() {
 		opts.SortBy = "customer"
 		cmd := client.FTSearch(ctx, "hcustomers", `@owner:{lara\.croft}`, opts)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
-		Expect(cmd.Val()).To(HaveLen(3))
-		for _, k := range cmd.Val() {
+		Expect(cmd.Val().TotalResults).To(Equal(int64(10)))
+		Expect(cmd.Val().Results).To(HaveLen(3))
+		for _, k := range cmd.Val().Results {
 			results = append(results, k.Key)
 		}
 		Expect(results).To(ConsistOf([]string{"haccount:765279", "haccount:1826581", "haccount:1371128"}))
 	})
 
 	It("can handle the RETURN subcommand", func() {
+		result := grstack.QueryResult{
+			Key:         "haccount:536299",
+			Score:       0,
+			Explanation: nil,
+			Values: &grstack.HashQueryValue{
+				Value: map[string]string{"owner": "ellen.ripley", "balance": "113"},
+			}}
 		opts := grstack.NewQueryOptions()
 		opts.Return = append(opts.Return, grstack.QueryReturn{
 			Name: "owner",
@@ -162,15 +175,9 @@ var _ = Describe("Query options", Label("hash", "query", "ft.search"), func() {
 		opts.Return = append(opts.Return, grstack.QueryReturn{Name: "balance"})
 		cmd := client.FTSearch(ctx, "hcustomers", `@owner:{ellen\.ripley}`, opts)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
-		Expect(cmd.Val()).To(Equal(grstack.QueryResults{
-			&grstack.QueryResult{
-				Key:         "haccount:536299",
-				Score:       0,
-				Explanation: nil,
-				Values: &grstack.HashQueryValue{
-
-					Value: map[string]string{"owner": "ellen.ripley", "balance": "113"},
-				}}}))
+		Expect(cmd.Len()).To(Equal(int64(1)))
+		Expect(cmd.Val().TotalResults).To(Equal(int64(1)))
+		Expect(cmd.Val().Results[0]).To(Equal(&result))
 	})
 
 })
@@ -181,9 +188,9 @@ var _ = Describe("JSON query basics", Label("json", "query", "ft.search"), func(
 		Expect(client.FTSearch(ctx, "jcustomers", `@email:ejowers0\@unblog\.fr`, nil).
 			Err()).To(Not(HaveOccurred()))
 	})
-	It("can generate a valid query", func() {
-		Expect(client.FTSearch(ctx, "jcustomers", `@email:ejowers0@unblog.fr`, nil).
-			String()).To(ContainSubstring(`ft.search jcustomers @email:ejowers0@unblog.fr`))
+	It("can generate a valid query", Label("valid"), func() {
+		Expect(client.FTSearch(ctx, "jcustomers", `@email:ejowers0\@unblog\.fr`, nil).
+			String()).To(ContainSubstring(`FT.SEARCH jcustomers @email:ejowers0\@unblog\.fr`))
 	})
 
 })
@@ -198,32 +205,16 @@ var _ = Describe("JSON searches", Label("json", "query", "ft.search"), func() {
 		Expect(cmd.Val().Key("jaccount:1121175").Values).To(BeAssignableToTypeOf(&grstack.JSONQueryValue{}))
 	})
 
-	It("can return multiple search results", func() {
+	It("can return multiple search results", Label("multiple"), func() {
 
 		cmd := client.FTSearchJSON(ctx, "jsoncomplex", `@datum:[1 1]`, nil)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		Expect(cmd.Val().Key("jcomplex1")).NotTo(BeNil())
 		Expect(cmd.Val().Key("jcomplex2")).NotTo(BeNil())
-		Expect(cmd.Val().Key("jcomplex2").Values.(*grstack.JSONQueryValue).Value).To(Equal(map[string]interface{}{
-			"$": map[string]interface{}{
-				"data": float64(1),
-				"test": map[string]interface{}{
-					"data": float64(1),
-				},
-			}},
-		))
-		Expect(cmd.Val().Key("jcomplex1").Values.(*grstack.JSONQueryValue).Value).To(Equal(map[string]interface{}{
-			"$": map[string]interface{}{
-
-				"data": float64(1),
-				"test1": map[string]interface{}{
-					"data": float64(2),
-				},
-				"test2": map[string]interface{}{
-					"data": float64(1),
-				},
-			}},
-		))
+		Expect(cmd.Val().Key("jcomplex2").Values.(*grstack.JSONQueryValue).Value).To(Equal(
+			map[string]string{"$": `{"data":1,"test":{"data":1}}`}))
+		Expect(cmd.Val().Key("jcomplex1").Values.(*grstack.JSONQueryValue).Value).To(Equal(
+			map[string]string{"$": `{"data":1,"test1":{"data":2},"test2":{"data":1}}`}))
 	})
 
 	It("can handle multiple search results with DIALECT 3", func() {
@@ -234,25 +225,10 @@ var _ = Describe("JSON searches", Label("json", "query", "ft.search"), func() {
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		Expect(cmd.Val().Key("jcomplex1")).NotTo(BeNil())
 		Expect(cmd.Val().Key("jcomplex2")).NotTo(BeNil())
-		Expect(cmd.Val().Key("jcomplex2").Values.(*grstack.JSONQueryValue).Value).To(Equal(map[string]interface{}{
-			"$": []interface{}{map[string]interface{}{
-				"data": float64(1),
-				"test": map[string]interface{}{
-					"data": float64(1),
-				},
-			}},
-		}))
-		Expect(cmd.Val().Key("jcomplex1").Values.(*grstack.JSONQueryValue).Value).To(Equal(map[string]interface{}{
-			"$": []interface{}{map[string]interface{}{
-				"data": float64(1),
-				"test1": map[string]interface{}{
-					"data": float64(2),
-				},
-				"test2": map[string]interface{}{
-					"data": float64(1),
-				},
-			}},
-		}))
+		Expect(cmd.Val().Key("jcomplex2").Values.(*grstack.JSONQueryValue).Value).To(Equal(map[string]string{
+			"$": `[{"data":1,"test":{"data":1}}]`}))
+		Expect(cmd.Val().Key("jcomplex1").Values.(*grstack.JSONQueryValue).Value).To(Equal(map[string]string{
+			"$": `[{"data":1,"test1":{"data":2},"test2":{"data":1}}]`}))
 	})
 
 	It("can return values when we use RETURN", func() {
@@ -266,8 +242,8 @@ var _ = Describe("JSON searches", Label("json", "query", "ft.search"), func() {
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		Expect(cmd.Val().Key("jcomplex1")).NotTo(BeNil())
 		Expect(cmd.Val().Key("jcomplex2")).NotTo(BeNil())
-		Expect(cmd.Val().Key("jcomplex2").Values.(*grstack.JSONQueryValue).Value).To(Equal(map[string]interface{}{"answer": float64(1)}))
-		Expect(cmd.Val().Key("jcomplex1").Values.(*grstack.JSONQueryValue).Value).To(Equal(map[string]interface{}{"answer": float64(1)}))
+		Expect(cmd.Val().Key("jcomplex2").Values.(*grstack.JSONQueryValue).Value).To(Equal(map[string]string{"answer": "1"}))
+		Expect(cmd.Val().Key("jcomplex1").Values.(*grstack.JSONQueryValue).Value).To(Equal(map[string]string{"answer": "1"}))
 	})
 
 	It("can return values when we use RETURN and DIALECT v3", func() {
@@ -282,8 +258,8 @@ var _ = Describe("JSON searches", Label("json", "query", "ft.search"), func() {
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		Expect(cmd.Val().Key("jcomplex1")).NotTo(BeNil())
 		Expect(cmd.Val().Key("jcomplex2")).NotTo(BeNil())
-		Expect(cmd.Val().Key("jcomplex1").Values.(*grstack.JSONQueryValue).Value).To(Equal(map[string]interface{}{"answer": []interface{}{float64(1), float64(2), float64(1)}}))
-		Expect(cmd.Val().Key("jcomplex2").Values.(*grstack.JSONQueryValue).Value).To(Equal(map[string]interface{}{"answer": []interface{}{float64(1), float64(1)}}))
+		Expect(cmd.Val().Key("jcomplex1").Values.(*grstack.JSONQueryValue).Value).To(Equal(map[string]string{"answer": `[1,2,1]`}))
+		Expect(cmd.Val().Key("jcomplex2").Values.(*grstack.JSONQueryValue).Value).To(Equal(map[string]string{"answer": `[1,1]`}))
 	})
 
 	It("can scan a result", func() {

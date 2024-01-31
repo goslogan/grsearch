@@ -85,12 +85,12 @@ type QueryReturn struct {
 func (q *QueryOptions) serialize() []interface{} {
 	var args = []interface{}{}
 
-	args = q.appendFlagArg(args, q.NoContent, "nocontent")
-	args = q.appendFlagArg(args, q.Verbatim, "verbatim")
-	args = q.appendFlagArg(args, q.NoStopWords, "nostopwords")
-	args = q.appendFlagArg(args, q.WithScores, "withscores")
-	args = q.appendFlagArg(args, q.WithPayloads, "withpayloads")
-	args = q.appendFlagArg(args, q.WithSortKeys, "withsortkeys")
+	args = q.appendFlagArg(args, q.NoContent, "NOCONTENT")
+	args = q.appendFlagArg(args, q.Verbatim, "VERBATIM")
+	args = q.appendFlagArg(args, q.NoStopWords, "NOSTOPWORDS")
+	args = q.appendFlagArg(args, q.WithScores, "WITHSCORES")
+	args = q.appendFlagArg(args, q.WithPayloads, "WITHPAYLOADS")
+	args = q.appendFlagArg(args, q.WithSortKeys, "WITHSORTKEYS")
 	args = append(args, q.serializeFilters()...)
 	for _, gf := range q.GeoFilters {
 		args = append(args, gf.serialize()...)
@@ -104,22 +104,22 @@ func (q *QueryOptions) serialize() []interface{} {
 	}
 
 	if q.Slop != noSlop {
-		args = internal.AppendStringArg(args, "slop", fmt.Sprintf("%d", q.Slop))
+		args = internal.AppendStringArg(args, "SLOP", fmt.Sprintf("%d", q.Slop))
 	}
 
 	if q.Timeout != 0 {
-		args = internal.AppendStringArg(args, "timeout", fmt.Sprintf("%d", q.Timeout.Milliseconds()))
+		args = internal.AppendStringArg(args, "TIMEOUT", fmt.Sprintf("%d", q.Timeout.Milliseconds()))
 	}
-	args = q.appendFlagArg(args, q.InOrder, "inorder")
-	args = internal.AppendStringArg(args, "language", q.Language)
+	args = q.appendFlagArg(args, q.InOrder, "INORDER")
+	args = internal.AppendStringArg(args, "LANGUAGE", q.Language)
 
-	args = append(args, internal.SerializeCountedArgs("inkeys", false, q.InKeys)...)
-	args = append(args, internal.SerializeCountedArgs("infields", false, q.InFields)...)
+	args = append(args, internal.SerializeCountedArgs("INKEYS", false, q.InKeys)...)
+	args = append(args, internal.SerializeCountedArgs("INFIELDS", false, q.InFields)...)
 
 	args = q.appendFlagArg(args, q.ExplainScore && q.WithScores, "EXPLAINSCORE")
 
 	if q.SortBy != "" {
-		args = append(args, "sortby", q.SortBy)
+		args = append(args, "SORTBY", q.SortBy)
 		if q.SortOrder != "" {
 			args = append(args, q.SortOrder)
 		}
@@ -137,7 +137,7 @@ func (q *QueryOptions) serialize() []interface{} {
 	}
 
 	if q.Dialect != defaultDialect {
-		args = append(args, "dialect", q.Dialect)
+		args = append(args, "DIALECT", q.Dialect)
 	}
 
 	return args
@@ -150,10 +150,10 @@ func (q *QueryOptions) serializeReturn() []interface{} {
 			if ret.As == "" {
 				fields = append(fields, ret.Name)
 			} else {
-				fields = append(fields, ret.Name, "as", ret.As)
+				fields = append(fields, ret.Name, "AS", ret.As)
 			}
 		}
-		return append([]interface{}{"return", len(fields)}, fields...)
+		return append([]interface{}{"RETURN", len(fields)}, fields...)
 	} else {
 		return nil
 	}
@@ -229,7 +229,7 @@ func FilterValue(val float64, exclusive bool) interface{} {
 
 // serialize converts a filter list to an array of interface{} objects for execution
 func (q *QueryFilter) serialize() []interface{} {
-	return []interface{}{"filter", q.Attribute, q.Min, q.Max}
+	return []interface{}{"FILTER", q.Attribute, q.Min, q.Max}
 }
 
 /******************************************************************************
@@ -238,12 +238,12 @@ func (q *QueryFilter) serialize() []interface{} {
 
 // queryLimit defines the results by offset and number.
 type Limit struct {
-	Offset int
-	Num    int
+	Offset int64
+	Num    int64
 }
 
 // NewQueryLimit returns an initialized limit struct
-func NewLimit(first int, num int) *Limit {
+func NewLimit(first int64, num int64) *Limit {
 	return &Limit{Offset: first, Num: num}
 }
 
@@ -252,7 +252,7 @@ func (ql *Limit) serialize() []interface{} {
 	if ql.Offset == DefaultOffset && ql.Num == DefaultLimit {
 		return nil
 	} else {
-		return []interface{}{"limit", ql.Offset, ql.Num}
+		return []interface{}{"LIMIT", ql.Offset, ql.Num}
 	}
 }
 
@@ -290,11 +290,11 @@ func NewQueryHighlight() *QueryHighlight {
 
 // serialize prepares the summarisation to be passed to Redis.
 func (s *QuerySummarize) serialize() []interface{} {
-	args := []interface{}{"summarize"}
-	args = append(args, internal.SerializeCountedArgs("fields", false, s.Fields)...)
-	args = append(args, "frags", s.Frags)
-	args = append(args, "len", s.Len)
-	args = append(args, "separator", s.Separator)
+	args := []interface{}{"SUMMARIZE"}
+	args = append(args, internal.SerializeCountedArgs("FIELDS", false, s.Fields)...)
+	args = append(args, "FRAGS", s.Frags)
+	args = append(args, "LEN", s.Len)
+	args = append(args, "SEPARATOR", s.Separator)
 	return args
 }
 
@@ -308,9 +308,9 @@ type QueryHighlight struct {
 // serialize prepares the highlighting to be passed to Redis.
 func (h *QueryHighlight) serialize() []interface{} {
 	args := []interface{}{"HIGHLIGHT"}
-	args = append(args, internal.SerializeCountedArgs("fields", false, h.Fields)...)
+	args = append(args, internal.SerializeCountedArgs("FIELDS", false, h.Fields)...)
 	if h.OpenTag != "" || h.CloseTag != "" {
-		args = append(args, "tags", h.OpenTag, h.CloseTag)
+		args = append(args, "TAGS", h.OpenTag, h.CloseTag)
 	}
 	return args
 }
@@ -327,5 +327,5 @@ type GeoFilter struct {
 }
 
 func (gf *GeoFilter) serialize() []interface{} {
-	return []interface{}{"geofilter", gf.Attribute, gf.Long, gf.Lat, gf.Radius, gf.Units}
+	return []interface{}{"GEOFILTER", gf.Attribute, gf.Long, gf.Lat, gf.Radius, gf.Units}
 }

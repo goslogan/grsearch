@@ -4,20 +4,28 @@ package grstack
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/redis/go-redis/v9"
 )
 
-type QueryResults []*QueryResult
+type QueryResults struct {
+	TotalResults int64
+	Results      []*QueryResult
+	keymap       map[string]int
+	Errors       []interface{}
+	Format       string
+	Attributes   []interface{}
+}
 
 type ResultValue interface {
-	parse([]interface{}) error
+	parse(int, []interface{}) error
 }
 
 type QueryResult struct {
 	Key         string
 	Score       float64
-	Explanation []interface{}
+	Explanation interface{}
 	Values      ResultValue
 }
 
@@ -26,20 +34,26 @@ type HashQueryValue struct {
 }
 
 type JSONQueryValue struct {
-	Value    map[string]interface{}
-	rawValue map[string]string
+	Value map[string]string
 }
 
-func (r *HashQueryValue) parse(input []interface{}) error {
-	results := make(map[string]string, len(input)/2)
-	key := ""
-	for i := 0; i < len(input); i += 2 {
-		key = input[i].(string)
-		value := input[i+1].(string)
-		results[key] = value
+func (r *HashQueryValue) parse(respVersion int, input []interface{}) error {
+
+	if respVersion == 2 {
+		results := make(map[string]string, len(input)/2)
+		key := ""
+		for i := 0; i < len(input); i += 2 {
+			key = input[i].(string)
+			value := input[i+1].(string)
+			results[key] = value
+		}
+		r.Value = results
+		return nil
+	} else if respVersion == 3 {
+		return nil
+	} else {
+		return fmt.Errorf("redis: invalid RESP version: %d", respVersion)
 	}
-	r.Value = results
-	return nil
 }
 
 func (r *HashQueryValue) Scan(dst interface{}) error {
@@ -47,42 +61,40 @@ func (r *HashQueryValue) Scan(dst interface{}) error {
 	return sCmd.Scan(dst)
 }
 
-func (r *JSONQueryValue) parse(input []interface{}) error {
+func (r *JSONQueryValue) parse(respVersion int, input []interface{}) error {
 
+	r.Value = map[string]string{}
 	key := input[0].(string)
-	rawValue := input[1].(string)
-	var result interface{}
-	err := json.Unmarshal([]byte(rawValue), &result)
+	value := input[1].(string)
 
-	if r.Value == nil {
-		r.rawValue = make(map[string]string)
-		r.Value = make(map[string]interface{})
-	}
-
-	r.rawValue[key] = rawValue
-	r.Value[key] = result
-	return err
+	r.Value[key] = value
+	return nil
 }
 
 func (r *JSONQueryValue) Scan(path string, to interface{}) error {
-	return json.Unmarshal([]byte(r.rawValue[path]), to)
+	return json.Unmarshal([]byte(r.Value[path]), to)
+}
+
+// SetResults stores search results into the struct and builds the
+// map used for fast key lookup
+func (q *QueryResults) SetResults(r []*QueryResult) {
+	q.keymap = map[string]int{}
+	for n, v := range r {
+		q.keymap[v.Key] = n
+	}
+	q.Results = r
 }
 
 // Key returns the individual result with the
 // given key
 func (q QueryResults) Key(key string) *QueryResult {
-	for _, r := range q {
-		if r.Key == key {
-			return r
-		}
-	}
-	return nil
+	return q.Results[q.keymap[key]]
 }
 
 // Keys returns the redis keys for all of the results
 func (q QueryResults) Keys() []string {
-	results := make([]string, len(q))
-	for i, k := range q {
+	results := make([]string, len(q.keymap))
+	for i, k := range q.Results {
 		results[i] = k.Key
 	}
 

@@ -37,7 +37,7 @@ func (c cmdable) FTAggregate(ctx context.Context, index, query string, options *
 
 // FTSearch queries an index (on hashes)
 func (c cmdable) FTSearch(ctx context.Context, index string, query string, qryOptions *QueryOptions) *QueryCmd {
-	args := []interface{}{"ft.search", index, query}
+	args := []interface{}{"FT.SEARCH", index, query}
 	if qryOptions == nil {
 		qryOptions = NewQueryOptions()
 	}
@@ -52,7 +52,7 @@ func (c cmdable) FTSearch(ctx context.Context, index string, query string, qryOp
 
 // FTSearch queries an index on JSON documents
 func (c cmdable) FTSearchJSON(ctx context.Context, index string, query string, qryOptions *QueryOptions) *QueryCmd {
-	args := []interface{}{"ft.search", index, query}
+	args := []interface{}{"FT.SEARCH", index, query}
 	if qryOptions == nil {
 		qryOptions = NewQueryOptions()
 	}
@@ -69,8 +69,8 @@ func (c cmdable) FTSearchJSON(ctx context.Context, index string, query string, q
 // FTConfigGet retrieves public config info from the search config
 func (c cmdable) FTConfigGet(ctx context.Context, keys ...string) *ConfigGetCmd {
 	args := make([]interface{}, len(keys)+2)
-	args[0] = "ft.config"
-	args[1] = "get"
+	args[0] = "FT.CONFIG"
+	args[1] = "GET"
 	for n, arg := range keys {
 		args[n+2] = arg
 	}
@@ -86,7 +86,7 @@ func (c cmdable) FTConfigGet(ctx context.Context, keys ...string) *ConfigGetCmd 
 
 // FTConfigGet sets values in the search config
 func (c cmdable) FTConfigSet(ctx context.Context, name, value string) *redis.BoolCmd {
-	args := []interface{}{"ft.config", "set", name, value}
+	args := []interface{}{"FT.CONFIG", "SET", name, value}
 
 	cmd := redis.NewBoolCmd(ctx, args...)
 	_ = c(ctx, cmd)
@@ -95,7 +95,7 @@ func (c cmdable) FTConfigSet(ctx context.Context, name, value string) *redis.Boo
 
 // FTTagVals returns the distinct values for a given tag
 func (c cmdable) FTTagVals(ctx context.Context, index, tag string) *redis.StringSliceCmd {
-	args := []interface{}{"ft.tagvals", index, tag}
+	args := []interface{}{"FT.TAGVALS", index, tag}
 
 	cmd := redis.NewStringSliceCmd(ctx, args...)
 	_ = c(ctx, cmd)
@@ -111,7 +111,7 @@ func (c cmdable) FTList(ctx context.Context) *redis.StringSliceCmd {
 
 // FTInfo returns information about an index
 func (c cmdable) FTInfo(ctx context.Context, index string) *InfoCmd {
-	args := []interface{}{"ft.info", index}
+	args := []interface{}{"FT.INFO", index}
 	cmd := NewInfoCmd(ctx, args...)
 	_ = c(ctx, cmd)
 	return cmd
@@ -127,7 +127,7 @@ func (c cmdable) FTInfo(ctx context.Context, index string) *InfoCmd {
 func (c cmdable) FTDictAdd(ctx context.Context, dictionary string, terms ...string) *redis.IntCmd {
 
 	args := make([]interface{}, len(terms)+2)
-	args[0] = "ft.dictadd"
+	args[0] = "FT.DICTADD"
 	args[1] = dictionary
 	for n, term := range terms {
 		args[n+2] = term
@@ -144,7 +144,7 @@ func (c cmdable) FTDictAdd(ctx context.Context, dictionary string, terms ...stri
 func (c cmdable) FTDictDel(ctx context.Context, dictionary string, terms ...string) *redis.IntCmd {
 
 	args := make([]interface{}, len(terms)+2)
-	args[0] = "ft.dictdel"
+	args[0] = "FT.DICTDEL"
 	args[1] = dictionary
 	for n, term := range terms {
 		args[n+2] = term
@@ -159,7 +159,7 @@ func (c cmdable) FTDictDel(ctx context.Context, dictionary string, terms ...stri
 // FTDictDump returns a slice containing all the terms in a dictionary
 func (c cmdable) FTDictDump(ctx context.Context, dictionary string) *redis.StringSliceCmd {
 
-	args := []interface{}{"ft.dictdump", dictionary}
+	args := []interface{}{"FT.DICTDUMP", dictionary}
 
 	cmd := redis.NewStringSliceCmd(ctx, args...)
 	_ = c(ctx, cmd)
@@ -176,7 +176,7 @@ func (c cmdable) FTDictDump(ctx context.Context, dictionary string) *redis.Strin
 // FTSynUpdate adds to or modifies a synonym group
 func (c cmdable) FTSynUpdate(ctx context.Context, index string, group string, terms ...string) *redis.BoolCmd {
 	args := make([]interface{}, len(terms)+3)
-	args[0] = "ft.synupdate"
+	args[0] = "FT.SYNUPDATE"
 	args[1] = index
 	args[2] = group
 	for n, term := range terms {
@@ -191,7 +191,7 @@ func (c cmdable) FTSynUpdate(ctx context.Context, index string, group string, te
 
 // FTSynDump returns the contents of synonym map for an index
 func (c cmdable) FTSynDump(ctx context.Context, index string) *SynonymDumpCmd {
-	args := []interface{}{"ft.syndump", index}
+	args := []interface{}{"FT.SYNDUMP", index}
 	cmd := NewSynonymDumpCmd(ctx, args...)
 	_ = c(ctx, cmd)
 	return cmd
@@ -205,7 +205,7 @@ func (c cmdable) FTSynDump(ctx context.Context, index string) *SynonymDumpCmd {
 
 // FTAliasAdd add an alias to an index.
 func (c cmdable) FTAliasAdd(ctx context.Context, alias, index string) *redis.BoolCmd {
-	args := []interface{}{"ft.aliasadd", alias, index}
+	args := []interface{}{"FT.ALIASADD", alias, index}
 	cmd := redis.NewBoolCmd(ctx, args...)
 	_ = c(ctx, cmd)
 	return cmd
@@ -213,7 +213,7 @@ func (c cmdable) FTAliasAdd(ctx context.Context, alias, index string) *redis.Boo
 
 // FTAliasDel deletes an alias
 func (c cmdable) FTAliasDel(ctx context.Context, alias string) *redis.BoolCmd {
-	args := []interface{}{"ft.aliasdel", alias}
+	args := []interface{}{"FT.ALIASDEL", alias}
 	cmd := redis.NewBoolCmd(ctx, args...)
 	_ = c(ctx, cmd)
 	return cmd
@@ -221,7 +221,7 @@ func (c cmdable) FTAliasDel(ctx context.Context, alias string) *redis.BoolCmd {
 
 // FTAliasDel deletes an alias
 func (c cmdable) FTAliasUpdate(ctx context.Context, alias, index string) *redis.BoolCmd {
-	args := []interface{}{"ft.aliasupdate", alias, index}
+	args := []interface{}{"FT.ALIASUPDATE", alias, index}
 	cmd := redis.NewBoolCmd(ctx, args...)
 	_ = c(ctx, cmd)
 	return cmd
