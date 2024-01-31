@@ -1,0 +1,66 @@
+FLUSHALL
+
+JSON.SET jaccount:536299 $ '{"name":  "Davon Audley", "email":  "daudley3\\@alexa\\.com", "ip": "174.113.231.230", "account_id": "536299", "account_owner": "ellen.ripley", "balance": 113.00 }' 
+JSON.SET jaccount:467734 $ '{"name":  "Emmet Jowers", "email":  "ejowers0\\@unblog\\.fr", "ip": "167.230.3.244", "account_id": "467734", "account_owner": "sarah.oconnor", "balance": -999.99 }' 
+JSON.SET jaccount:1044493 $ '{"name":  "Essy Kiddle", "email":  "ekiddle1\\@si\\.edu", "ip": "230.144.170.69", "account_id": "1044493", "account_owner": "sarah.oconnor", "balance": 0 }' 
+JSON.SET jaccount:508709 $ '{"name":  "Vlad Darrigrand", "email":  "vdarrigrand2\\@kickstarter\\.com", "ip": "45.89.83.231", "account_id": "508709", "account_owner": "sarah.oconnor", "balance": 0 }' 
+JSON.SET jaccount:1505510 $ '{"name":  "Remington Ponceford", "email":  "rponceford4\\@topsy\\.com", "ip": "236.175.61.40", "account_id": "1505510", "account_owner": "sarah.oconnor", "balance": 0 }' 
+JSON.SET jaccount:1339089 $ '{"name":  "Aili Brahms", "email":  "abrahms5\\@wikia\\.com", "ip": "182.115.99.238", "account_id": "1339089", "account_owner": "lara.croft", "balance": 0 }' 
+JSON.SET jaccount:886088 $ '{"name":  "Lynn Beed", "email":  "lbeed6\\@jalbum\\.net", "ip": "142.218.3.176", "account_id": "886088", "account_owner": "lara.croft", "balance": 0 }' 
+JSON.SET jaccount:1222097 $ '{"name":  "Corabelle Bertelmot", "email":  "cbertelmot7\\@amazon\\.com", "ip": "122.247.52.99", "account_id": "1222097", "account_owner": "sarah.oconnor", "balance": -3402.00 }' 
+JSON.SET jaccount:1952347 $ '{"name":  "Demetri Vigors", "email":  "dvigors8\\@w3\\.org", "ip": "40.75.113.150", "account_id": "1952347", "account_owner": "sarah.oconnor", "balance": 1371.00 }' 
+JSON.SET jaccount:507187 $ '{"name":  "Rafaelita Wisam", "email":  "rwisam9\\@vk\\.com", "ip": "175.40.66.248", "account_id": "507187", "account_owner": "lara.croft", "balance": 0 }' 
+JSON.SET jaccount:419113 $ '{"name":  "Jsandye Sprackling", "email":  "jspracklinga\\@ow\\.ly", "ip": "177.67.221.138", "account_id": "419113", "account_owner": "sarah.oconnor", "balance": 0 }' 
+JSON.SET jaccount:765279 $ '{"name":  "Chen Clilverd", "email":  "cclilverdb\\@stanford\\.edu", "ip": "164.230.108.100", "account_id": "765279", "account_owner": "lara.croft", "balance": 0 }' 
+JSON.SET jaccount:1121175 $ '{"name":  "Kandace Korneichuk", "email":  "kkorneichukc\\@cpanel\\.net", "ip": "148.140.255.235", "account_id": "1121175", "account_owner": "lara.croft", "balance": 927.00 }' 
+JSON.SET jaccount:575072 $ '{"name":  "Brandy Gustus", "email":  "bgustusd\\@loc\\.gov", "ip": "233.98.10.248", "account_id": "575072", "account_owner": "lara.croft", "balance": 3.24 }' 
+JSON.SET jaccount:1371128 $ '{"name":  "Gizela Rolph", "email":  "grolphf\\@theguardian\\.com", "ip": "91.16.124.34", "account_id": "1371128", "account_owner": "lara.croft", "balance": 0 }' 
+JSON.SET jaccount:1826581 $ '{"name":  "Curtice Iscowitz", "email":  "ciscowitzg\\@newyorker\\.com", "ip": "118.83.100.5", "account_id": "1826581", "account_owner": "lara.croft", "balance": 0 }' 
+JSON.SET jaccount:806396 $ '{"name":  "Meggy Sheward", "email":  "mshewardh\\@alexa\\.com", "ip": "56.21.83.123", "account_id": "806396", "account_owner": "lara.croft", "balance": 0 }' 
+JSON.SET jaccount:239155 $ '{"name":  "Binnie Sowerby", "email":  "bsowerbyi\\@china\\.com\\.cn", "ip": "185.1.56.15", "account_id": "239155", "account_owner": "lara.croft", "balance": 0 }' 
+JSON.SET jaccount:376460 $ '{"name":  "Tamarah Hallybone", "email":  "thallybonej\\@wisc\\.edu", "ip": "115.140.35.151", "account_id": "376460", "account_owner": "sarah.oconnor", "balance": -6503.33 }' 
+JSON.SET jaccount:1443633 $ '{"name":  "Niko Drillingcourt", "email":  "ndrillingcourtk\\@nydailynews\\.com", "ip": "37.18.13.16", "account_id": "1443633", "account_owner": "sarah.oconnor", "balance": -1200.23 }' 
+JSON.SET jaccount:1840413 $ '{"name":  "Martynne Shovell", "email":  "mshovelll\\@google\\.com\\.br", "ip": "73.142.109.212", "account_id": "1840413", "account_owner": "sarah.oconnor", "balance": 0 }' 
+JSON.SET jaccount:232226 $ '{"name":  "Trev Todman", "email":  "ttodmanm\\@rambler.\\ru", "ip": "137.130.15.201", "account_id": "232226", "account_owner": "sarah.oconnor", "balance": -991.31 }' 
+JSON.SET jaccount:355348 $ '{"name":  "Fields Baldry", "email":  "fbaldryn\\@weibo\\.com", "ip": "58.157.227.177", "account_id": "355348", "account_owner": "sarah.oconnor", "balance": 0 }' 
+JSON.SET jaccount:1838082 $ '{"name":  "Tracy Pauly", "email":  "tpaulyo\\@myspace\\.com", "ip": "75.189.188.225", "account_id": "1838082", "account_owner": "lara.croft", "balance": 650.01 }' 
+JSON.SET jaccount:1888382 $ '{"name":  "Annabal O\'Carran", "email":  "aocarrane\\@instagram\\.com", "ip": "234.240.12.81", "account_id": "1888382", "account_owner": "sarah.oconnor", "balance": -560.88 }' 
+
+FT.CREATE "jcustomers" ON JSON PREFIX 1 "jaccount:" SCHEMA $.account_id AS id TAG SORTABLE $.email as email TEXT SORTABLE $.account_owner AS owner TAG SORTABLE $.balance as balance NUMERIC SORTABLE 
+
+
+
+
+HSET haccount:536299 "name" "Davon Audley" "email" "daudley3\@alexa\.com" "ip" "174.113.231.230" "account_id" "536299" "account_owner" "ellen.ripley" "balance" "113.00" 
+HSET haccount:467734 "name" "Emmet Jowers" "email" "ejowers0\\@unblog\\.fr" "ip" "167.230.3.244" "account_id" "467734" "account_owner" "sarah.oconnor" "balance" "-999.99" 
+HSET haccount:1044493 "name" "Essy Kiddle" "email" "ekiddle1\@si\.edu" "ip" "230.144.170.69" "account_id" "1044493" "account_owner" "sarah.oconnor" "balance" "0" 
+HSET haccount:508709 "name" "Vlad Darrigrand" "email" "vdarrigrand2\@kickstarter\.com" "ip" "45.89.83.231" "account_id" "508709" "account_owner" "sarah.oconnor" "balance" "0" 
+HSET haccount:1505510 "name" "Remington Ponceford" "email" "rponceford4\@topsy\.com" "ip" "236.175.61.40" "account_id" "1505510" "account_owner" "sarah.oconnor" "balance" "0" 
+HSET haccount:1339089 "name" "Aili Brahms" "email" "abrahms5\@wikia\.com" "ip" "182.115.99.238" "account_id" "1339089" "account_owner" "lara.croft" "balance" "0" 
+HSET haccount:886088 "name" "Lynn Beed" "email" "lbeed6\@jalbum\.net" "ip" "142.218.3.176" "account_id" "886088" "account_owner" "lara.croft" "balance" "0" 
+HSET haccount:1222097 "name" "Corabelle Bertelmot" "email" "cbertelmot7\@amazon\.com" "ip" "122.247.52.99" "account_id" "1222097" "account_owner" "sarah.oconnor" "balance" "-3402.00" 
+HSET haccount:1952347 "name" "Demetri Vigors" "email" "dvigors8\@w3\.org" "ip" "40.75.113.150" "account_id" "1952347" "account_owner" "sarah.oconnor" "balance" "1371.00" 
+HSET haccount:507187 "name" "Rafaelita Wisam" "email" "rwisam9\@vk\.com" "ip" "175.40.66.248" "account_id" "507187" "account_owner" "lara.croft" "balance" "0" 
+HSET haccount:419113 "name" "Jsandye Sprackling" "email" "jspracklinga\@ow\.ly" "ip" "177.67.221.138" "account_id" "419113" "account_owner" "sarah.oconnor" "balance" "0" 
+HSET haccount:765279 "name" "Chen Clilverd" "email" "cclilverdb\@stanford\.edu" "ip" "164.230.108.100" "account_id" "765279" "account_owner" "lara.croft" "balance" "0" 
+HSET haccount:1121175 "name" "Kandace Korneichuk" "email" "kkorneichukc\@cpanel\.net" "ip" "148.140.255.235" "account_id" "1121175" "account_owner" "lara.croft" "balance" "927.00" 
+HSET haccount:575072 "name" "Brandy Gustus" "email" "bgustusd\@loc\.gov" "ip" "233.98.10.248" "account_id" "575072" "account_owner" "lara.croft" "balance" "3.24" 
+HSET haccount:1371128 "name" "Gizela Rolph" "email" "grolphf\@theguardian\.com" "ip" "91.16.124.34" "account_id" "1371128" "account_owner" "lara.croft" "balance" "0" 
+HSET haccount:1826581 "name" "Curtice Iscowitz" "email" "ciscowitzg\@newyorker\.com" "ip" "118.83.100.5" "account_id" "1826581" "account_owner" "lara.croft" "balance" "0" 
+HSET haccount:806396 "name" "Meggy Sheward" "email" "mshewardh\@alexa\.com" "ip" "56.21.83.123" "account_id" "806396" "account_owner" "lara.croft" "balance" "0" 
+HSET haccount:239155 "name" "Binnie Sowerby" "email" "bsowerbyi\@china\.com\.cn" "ip" "185.1.56.15" "account_id" "239155" "account_owner" "lara.croft" "balance" "0" 
+HSET haccount:376460 "name" "Tamarah Hallybone" "email" "thallybonej\@wisc\.edu" "ip" "115.140.35.151" "account_id" "376460" "account_owner" "sarah.oconnor" "balance" "-6503.33" 
+HSET haccount:1443633 "name" "Niko Drillingcourt" "email" "ndrillingcourtk\@nydailynews\.com" "ip" "37.18.13.16" "account_id" "1443633" "account_owner" "sarah.oconnor" "balance" "-1200.23" 
+HSET haccount:1840413 "name" "Martynne Shovell" "email" "mshovelll\@google\.com\.br" "ip" "73.142.109.212" "account_id" "1840413" "account_owner" "sarah.oconnor" "balance" "0" 
+HSET haccount:232226 "name" "Trev Todman" "email" "ttodmanm\@rambler\.ru" "ip" "137.130.15.201" "account_id" "232226" "account_owner" "sarah.oconnor" "balance" "-991.31" 
+HSET haccount:355348 "name" "Fields Baldry" "email" "fbaldryn\@weibo\.com" "ip" "58.157.227.177" "account_id" "355348" "account_owner" "sarah.oconnor" "balance" "0" 
+HSET haccount:1838082 "name" "Tracy Pauly" "email" "tpaulyo\@myspace\.com" "ip" "75.189.188.225" "account_id" "1838082" "account_owner" "lara.croft" "balance" "650.01" 
+
+FT.CREATE "hcustomers" ON HASH PREFIX 1 "haccount:" SCHEMA account_id AS id TAG SORTABLE email TEXT SORTABLE account_owner AS owner TAG SORTABLE balance NUMERIC SORTABLE 
+
+
+
+FT.CREATE "jcomplex" ON JSON PREFIX 1 "jcomplex" SCHEMA "$..data" AS datum  NUMERIC SORTABLE
+
+JSON.SET jcomplex1 $ '{"data": 1, "test1": {"data": 2 }, "test2": {"data": 1}}'
+JSON.SET jcomplex2 $ '{"data": 1, "test": {"data": 1 }}'
