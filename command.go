@@ -2,11 +2,8 @@ package grstack
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
-	"github.com/goslogan/grstack/internal"
-	"github.com/mitchellh/mapstructure"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -15,7 +12,7 @@ import (
  *******************************************************************************/
 
 type QueryCmd struct {
-	redis.SliceCmd
+	redis.Cmd
 	val     QueryResults
 	options *QueryOptions
 	process cmdable // used to initialise iterator
@@ -25,8 +22,8 @@ type QueryCmd struct {
 // NewQueryCmd returns an initialised query command.
 func NewQueryCmd(ctx context.Context, process cmdable, args ...interface{}) *QueryCmd {
 	return &QueryCmd{
-		process:  process,
-		SliceCmd: *redis.NewSliceCmd(ctx, args...),
+		process: process,
+		Cmd:     *redis.NewCmd(ctx, args...),
 	}
 }
 func (cmd *QueryCmd) SetVal(val QueryResults) {
@@ -50,7 +47,7 @@ func (cmd *QueryCmd) Len() int64 {
 }
 
 func (cmd *QueryCmd) String() string {
-	return cmd.SliceCmd.String()
+	return cmd.Cmd.String()
 }
 
 func (cmd *QueryCmd) SetCount(count int64) {
@@ -72,16 +69,20 @@ func (cmd *QueryCmd) postProcess() error {
 		return cmd.Err()
 	}
 
-	rawResults := cmd.SliceCmd.Val()
-	var values *QueryResults
+	rawResults := cmd.Cmd.Val()
 	var err error
+	var values *QueryResults
 
 	// RESP2 or RESP3?
-	if check, ok := rawResults[0].(string); ok && check == "attributes" {
+	switch rawResults.(type) {
+	case map[interface{}]interface{}:
 		values, err = cmd.postprocessRESP3Response(rawResults)
-	} else {
+	case []interface{}:
 		values, err = cmd.postprocessRESP2Response(rawResults)
+	default:
+		return fmt.Errorf("redis: %v is not a valid type search result", rawResults)
 	}
+
 	if err != nil {
 		return err
 	}
@@ -91,7 +92,56 @@ func (cmd *QueryCmd) postProcess() error {
 }
 
 func (cmd *QueryCmd) postprocessRESP3Response(baseResponse interface{}) (*QueryResults, error) {
-	return nil, nil
+	response, ok := baseResponse.(map[interface{}]interface{})
+
+	if !ok {
+		return nil, fmt.Errorf("redis: FT.SEARCH response is not a map")
+	}
+
+	output := QueryResults{Results: []*QueryResult{}}
+	output.Attributes = response["attributes"].([]interface{})
+	output.Errors = response["error"].([]interface{})
+	output.Format = response["format"].(string)
+	output.TotalResults = response["total_results"].(int64)
+
+	results := []*QueryResult{}
+	for _, r := range response["results"].([]interface{}) {
+		rawResult := r.(map[interface{}]interface{})
+		current := QueryResult{}
+		current.Key = rawResult["id"].(string)
+
+		if cmd.options.WithScores {
+			if cmd.options.ExplainScore {
+				scoreInfo := rawResult["score"].([]interface{})
+				current.Score = scoreInfo[0].(float64)
+				current.Explanation = scoreInfo[1]
+			} else {
+				current.Score = rawResult["score"].(float64)
+			}
+
+		}
+
+		var result ResultValue
+
+		if cmd.options.json {
+			result = &JSONQueryValue{}
+		} else {
+			result = &HashQueryValue{}
+		}
+
+		if !cmd.options.NoContent {
+			err := result.parse(3, rawResult["extra_attributes"])
+			if err != nil {
+				return nil, err
+			}
+			current.Values = result
+		}
+		results = append(results, &current)
+	}
+
+	output.SetResults(results)
+	return &output, nil
+
 }
 
 func (cmd *QueryCmd) postprocessRESP2Response(baseResponse interface{}) (*QueryResults, error) {
@@ -224,9 +274,13 @@ func NewSynonymDumpCmd(ctx context.Context, args ...interface{}) *SynonymDumpCmd
 	}
 }
 
-func (c *SynonymDumpCmd) postProcess() error {
-	if result, err := c.Slice(); err == nil {
-		synonymMap := make(map[string][]string)
+func (cmd *SynonymDumpCmd) postProcess() error {
+	r := cmd.Cmd.Val()
+	synonymMap := make(map[string][]string)
+
+	switch result := r.(type) {
+	case []interface{}: // RESP 2
+
 		for n := 0; n < len(result); n += 2 {
 			synonym := result[n].(string)
 			groups := make([]string, len(result[n+1].([]interface{})))
@@ -234,10 +288,20 @@ func (c *SynonymDumpCmd) postProcess() error {
 				groups[m] = group.(string)
 			}
 			synonymMap[synonym] = groups
-
 		}
-		c.SetVal(synonymMap)
+	case map[interface{}]interface{}: // RESP3
+		for k, v := range result {
+			groups := make([]string, len(v.([]interface{})))
+			for m, group := range v.([]interface{}) {
+				groups[m] = group.(string)
+			}
+			synonymMap[k.(string)] = groups
+		}
+	default:
+		return fmt.Errorf("redis: %v is not a valid result for FT.SYNONYMDUMP", r)
 	}
+
+	cmd.SetVal(synonymMap)
 	return nil
 }
 
@@ -260,13 +324,13 @@ func (cmd *SynonymDumpCmd) Result() (map[string][]string, error) {
 *******************************************************************************/
 
 type InfoCmd struct {
-	redis.MapStringInterfaceCmd
+	redis.Cmd
 	val *Info
 }
 
 func NewInfoCmd(ctx context.Context, args ...interface{}) *InfoCmd {
 	return &InfoCmd{
-		MapStringInterfaceCmd: *redis.NewMapStringInterfaceCmd(ctx, args...),
+		Cmd: *redis.NewCmd(ctx, args...),
 	}
 }
 
@@ -274,155 +338,34 @@ func (c *InfoCmd) SetVal(i *Info) {
 	c.val = i
 }
 
-func (c *InfoCmd) Val() *Info {
-	return c.val
-}
-
-func (c *InfoCmd) Result() (*Info, error) {
-	return c.Val(), c.Err()
-}
-
-func (c *InfoCmd) postProcess() error {
-	info := Info{}
-	config := mapstructure.DecoderConfig{
-		DecodeHook:           mapstructure.ComposeDecodeHookFunc(internal.StringToDurationHookFunc(), internal.StringToMapHookFunc()),
-		WeaklyTypedInput:     true,
-		Result:               &info,
-		IgnoreUntaggedFields: true,
-	}
-	if decoder, err := mapstructure.NewDecoder(&config); err != nil {
-		return err
-	} else if err := decoder.Decode(c.MapStringInterfaceCmd.Val()); err != nil {
-		return err
-	}
-
-	info.Index = *NewIndexOptions()
-	info.Index.parseInfo(c.MapStringInterfaceCmd.Val())
-
-	c.SetVal(&info)
-	return nil
-}
-
-/*******************************************************************************
-*
-* JSONStringCmd
-*
-*******************************************************************************/
-
-type JSONStringCmd struct {
-	redis.StringCmd
-	val []interface{}
-}
-
-func NewJSONStringCmd(ctx context.Context, args ...interface{}) *JSONStringCmd {
-	return &JSONStringCmd{
-		StringCmd: *redis.NewStringCmd(ctx, args...),
-	}
-}
-
-// given a string containing a JSON array, turn it into
-// an array of json.RawMessage objects
-func (c *JSONStringCmd) postProcess() error {
-
-	// nil response from JSON.(M)GET (c.StringCmd.err will be "redis: nil")
-	if c.StringCmd.Val() == "" && c.StringCmd.Err().Error() == redis.Nil.Error() {
-		c.val = nil
-		c.SetErr(nil)
-		return nil
-	}
-
-	if objects, err := internal.ExtractJSONValue(c.StringCmd.Val()); err != nil {
-		c.SetErr(err)
-		return err
-	} else {
-		c.SetVal(objects)
-		return nil
-	}
-}
-
-func (cmd *JSONStringCmd) SetVal(val []interface{}) {
-	cmd.val = val
-}
-
-func (cmd *JSONStringCmd) Val() []interface{} {
+func (cmd *InfoCmd) Val() *Info {
 	return cmd.val
 }
 
-func (cmd *JSONStringCmd) Result() ([]interface{}, error) {
+func (cmd *InfoCmd) Result() (*Info, error) {
 	return cmd.Val(), cmd.Err()
 }
 
-// Scan scans the result at position index in the results into the
-// destination.
-func (cmd *JSONStringCmd) Scan(index int, dst interface{}) error {
-	if cmd.Err() != nil {
-		return cmd.Err()
+func (cmd *InfoCmd) postProcess() error {
+
+	rawResult := cmd.Cmd.Val()
+	var mapped map[interface{}]interface{}
+
+	switch rawResult.(type) {
+		case []interface{}:
+			mapResult := cmd.toMap(rawResult)
+		case map[interface{}]interface{}
+			mapped = rawResult
+		default:
+			return fmt.Errorf("redis: FT.INFO - invalid response type")
 	}
 
-	if index < 0 || index >= len(cmd.val) {
-		return fmt.Errorf("JSONCmd.Scan - %d is out of range (0..%d)", index, len(cmd.val))
-	}
+	
 
-	results := []json.RawMessage{}
-	if err := json.Unmarshal([]byte(cmd.StringCmd.Val()), &results); err != nil {
-		return err
-	} else {
-		return json.Unmarshal(results[index], dst)
-	}
-}
+	fmt.Printf("%v", rawResult)
 
-/*******************************************************************************
-*
-* JSONStringSliceCmd
-*
-*******************************************************************************/
-
-// TODO: think of a way to implement Scan for this.
-type JSONStringSliceCmd struct {
-	redis.StringSliceCmd
-	val [][]interface{}
-}
-
-func NewJSONStringSliceCmd(ctx context.Context, args ...interface{}) *JSONStringSliceCmd {
-	return &JSONStringSliceCmd{
-		StringSliceCmd: *redis.NewStringSliceCmd(ctx, args...),
-	}
-}
-
-func (c *JSONStringSliceCmd) postProcess() error {
-
-	// nil response from JSON.(M)GET (c.StringCmd.err will be "redis: nil")
-	if len(c.StringSliceCmd.Val()) == 0 && c.StringSliceCmd.Err().Error() == redis.Nil.Error() {
-		c.val = nil
-		c.SetErr(nil)
-		return nil
-	}
-
-	results := [][]interface{}{}
-
-	for _, val := range c.StringSliceCmd.Val() {
-		if objects, err := internal.ExtractJSONValue(val); err != nil {
-			c.SetErr(err)
-			return err
-		} else {
-			results = append(results, objects)
-		}
-	}
-
-	c.SetVal(results)
+	// c.SetVal(&info)
 	return nil
-}
-
-func (cmd *JSONStringSliceCmd) SetVal(val [][]interface{}) {
-	cmd.val = val
-}
-
-func (cmd *JSONStringSliceCmd) Val() [][]interface{} {
-	return cmd.val
-}
-
-func (cmd *JSONStringSliceCmd) Result() ([][]interface{}, error) {
-	return cmd.Val(), cmd.Err()
 }
 
 /*******************************************************************************

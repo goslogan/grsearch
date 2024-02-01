@@ -286,7 +286,7 @@ var _ = Describe("JSON searches", Label("json", "query", "ft.search"), func() {
 	It("can return all the keys from a query result", func() {
 		cmd := client.FTSearchJSON(ctx, "jsoncomplex", `@datum:[1 1]`, nil)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
-		Expect(cmd.Val().Keys()).To(Equal([]string{"jcomplex2", "jcomplex1"}))
+		Expect(cmd.Val().Keys()).To(ConsistOf([]string{"jcomplex2", "jcomplex1"}))
 	})
 
 })

@@ -19,7 +19,7 @@ type QueryResults struct {
 }
 
 type ResultValue interface {
-	parse(int, []interface{}) error
+	parse(int, interface{}) error
 }
 
 type QueryResult struct {
@@ -37,9 +37,10 @@ type JSONQueryValue struct {
 	Value map[string]string
 }
 
-func (r *HashQueryValue) parse(respVersion int, input []interface{}) error {
+func (r *HashQueryValue) parse(respVersion int, source interface{}) error {
 
 	if respVersion == 2 {
+		input := source.([]interface{})
 		results := make(map[string]string, len(input)/2)
 		key := ""
 		for i := 0; i < len(input); i += 2 {
@@ -50,6 +51,12 @@ func (r *HashQueryValue) parse(respVersion int, input []interface{}) error {
 		r.Value = results
 		return nil
 	} else if respVersion == 3 {
+		input := source.(map[interface{}]interface{})
+		results := make(map[string]string)
+		for k, v := range input {
+			results[k.(string)] = v.(string)
+		}
+		r.Value = results
 		return nil
 	} else {
 		return fmt.Errorf("redis: invalid RESP version: %d", respVersion)
@@ -61,13 +68,23 @@ func (r *HashQueryValue) Scan(dst interface{}) error {
 	return sCmd.Scan(dst)
 }
 
-func (r *JSONQueryValue) parse(respVersion int, input []interface{}) error {
+func (r *JSONQueryValue) parse(respVersion int, source interface{}) error {
 
 	r.Value = map[string]string{}
-	key := input[0].(string)
-	value := input[1].(string)
 
-	r.Value[key] = value
+	if respVersion == 2 {
+		input := source.([]interface{})
+		key := input[0].(string)
+		value := input[1].(string)
+		r.Value[key] = value
+	} else if respVersion == 3 {
+		input := source.(map[interface{}]interface{})
+		for k, v := range input {
+			r.Value[k.(string)] = v.(string)
+		}
+	} else {
+		return fmt.Errorf("redis: %d is not a valid RESP version", respVersion)
+	}
 	return nil
 }
 
