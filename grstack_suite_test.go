@@ -214,7 +214,7 @@ func createJSONIndexes() {
 func TestFtsearch(t *testing.T) {
 	RegisterFailHandler(Fail)
 	suiteConfig, reportConfig := GinkgoConfiguration()
-	//suiteConfig.LabelFilter = "ft.info"
+	//suiteConfig.LabelFilter = "withscores"
 	RunSpecs(t, "Ftsearch Suite", suiteConfig, reportConfig)
 }
 

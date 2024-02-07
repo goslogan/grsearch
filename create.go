@@ -44,7 +44,7 @@ type TextAttribute struct {
 	Sortable       bool
 	UnNormalized   bool
 	Phonetic       string
-	Weight         float32
+	Weight         float64
 	NoStem         bool
 	WithSuffixTrie bool
 	NoIndex        bool

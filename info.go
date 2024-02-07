@@ -135,7 +135,7 @@ func (info *Info) parseIndexOptionsFromInfo(input map[interface{}]interface{}) e
 		} else {
 			i.On = "HASH"
 		}
-		i.Score, _ = mapped["default_score"].(float64)
+		i.Score, _ = internal.Float64(mapped["default_score"])
 		i.Prefix = make([]string, len(mapped["prefixes"].([]interface{})))
 		for n, p := range mapped["prefixes"].([]interface{}) {
 			i.Prefix[n] = p.(string)
@@ -260,7 +260,7 @@ func (a *TextAttribute) parseFromInfo(source map[interface{}]interface{}) {
 		case "noindex":
 			a.NoIndex = true
 		case "weight":
-			a.Weight = float32(val.(float64))
+			a.Weight, _ = internal.Float64(val)
 		case "phonetic":
 			a.Phonetic = val.(string)
 		case "nostem":

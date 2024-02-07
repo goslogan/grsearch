@@ -178,12 +178,12 @@ func (cmd *QueryCmd) postprocessRESP2Response(baseResponse interface{}) (*QueryR
 		if cmd.options.WithScores {
 			if cmd.options.ExplainScore {
 				scoreData := response[i+j].([]interface{})
-				score = scoreData[0].(float64)
+				score, _ = internal.Float64(scoreData[0])
 				explanation = scoreData[1].([]interface{})
 				current.Score = score
 				current.Explanation = explanation
 			} else {
-				current.Score, _ = response[i+j].(float64)
+				current.Score, _ = internal.Float64(response[i+j])
 			}
 			j++
 		}
