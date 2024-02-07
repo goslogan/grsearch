@@ -1,9 +1,9 @@
-package grstack
+package grsearch
 
 import (
 	"strings"
 
-	"github.com/goslogan/grstack/internal"
+	"github.com/goslogan/grsearch/internal"
 )
 
 // SearchIndex defines an index to be created with FT.CREATE

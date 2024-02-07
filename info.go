@@ -1,4 +1,4 @@
-package grstack
+package grsearch
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/goslogan/grstack/internal"
+	"github.com/goslogan/grsearch/internal"
 )
 
 /****
@@ -167,7 +167,7 @@ func (info *Info) parseIndexOptionsFromInfo(input map[interface{}]interface{}) e
 			case "vector":
 				attribute = &VectorAttribute{}
 			default:
-				return fmt.Errorf("grstack: unhandled attribute type: %s", attribInfo[5].(string))
+				return fmt.Errorf("grsearch: unhandled attribute type: %s", attribInfo[5].(string))
 			}
 			if attribInfo != nil {
 				attribute.parseFromInfo(attribInfo)

@@ -1,10 +1,10 @@
-package grstack
+package grsearch
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/goslogan/grstack/internal"
+	"github.com/goslogan/grsearch/internal"
 	"github.com/redis/go-redis/v9"
 )
 

@@ -1,16 +1,16 @@
-package grstack_test
+package grsearch_test
 
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/goslogan/grstack"
+	"github.com/goslogan/grsearch"
 )
 
 var _ = Describe("Iterator", Label("search", "hash", "ft.search", "iterator"), func() {
 
 	It("can iterate over a search returning a single hash result", func() {
-		cmd := client.FTSearch(ctx, "hdocs", "HGET", grstack.NewQueryBuilder().SortBy("command").Verbatim().Options())
+		cmd := client.FTSearch(ctx, "hdocs", "HGET", grsearch.NewQueryBuilder().SortBy("command").Verbatim().Options())
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		iterator := cmd.Iterator(ctx)
 		Expect(iterator.Err()).NotTo(HaveOccurred())
@@ -20,7 +20,7 @@ var _ = Describe("Iterator", Label("search", "hash", "ft.search", "iterator"), f
 	})
 
 	It("can iterate over a search returning fewer than the limit results", func() {
-		cmd := client.FTSearch(ctx, "hdocs", "GET", grstack.NewQueryBuilder().SortBy("command").Verbatim().Options())
+		cmd := client.FTSearch(ctx, "hdocs", "GET", grsearch.NewQueryBuilder().SortBy("command").Verbatim().Options())
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		iterator := cmd.Iterator(ctx)
 		Expect(iterator.Err()).NotTo(HaveOccurred())
@@ -36,7 +36,7 @@ var _ = Describe("Iterator", Label("search", "hash", "ft.search", "iterator"), f
 
 	It("can iterate over a search return in multiple calls", func() {
 		cmd := client.FTSearch(ctx, "hdocs", "GET",
-			grstack.NewQueryBuilder().
+			grsearch.NewQueryBuilder().
 				SortBy("command").
 				Limit(0, 2).
 				Verbatim().

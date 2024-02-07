@@ -1,4 +1,4 @@
-package grstack_test
+package grsearch_test
 
 import (
 	. "github.com/onsi/ginkgo/v2"

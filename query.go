@@ -1,12 +1,12 @@
 // query provides an interface to RedisSearch's query functionality.
-package grstack
+package grsearch
 
 import (
 	"fmt"
 	"math"
 	"time"
 
-	"github.com/goslogan/grstack/internal"
+	"github.com/goslogan/grsearch/internal"
 )
 
 type QueryOptions struct {

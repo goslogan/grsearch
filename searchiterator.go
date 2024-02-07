@@ -1,4 +1,4 @@
-package grstack
+package grsearch
 
 // iterators - how to implement. search results do not support cursors like aggregates
 // so we can implement an iterator insipired by the Scan iterator. In this version we need

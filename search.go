@@ -1,5 +1,5 @@
-// grstack main module - defines the client class
-package grstack
+// grsearch main module - defines the client class
+package grsearch
 
 import (
 	"context"

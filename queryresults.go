@@ -1,4 +1,4 @@
-package grstack
+package grsearch
 
 // code to process the decoding/parsing of individual values in the query results.
 

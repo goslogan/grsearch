@@ -1,10 +1,10 @@
-package grstack
+package grsearch
 
 import (
 	"fmt"
 	"time"
 
-	"github.com/goslogan/grstack/internal"
+	"github.com/goslogan/grsearch/internal"
 )
 
 // AggregateOptions represents the options that can be passed to [FT.AGGREGATE].

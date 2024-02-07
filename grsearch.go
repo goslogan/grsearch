@@ -1,9 +1,9 @@
-// Package grstack is an extension to [github.com/redis/go-redis], implementing support for
+// Package grsearch is an extension to [github.com/redis/go-redis], implementing support for
 // [RedisJSON] and [RediSearch]. It attempts to follow the syntactic style of go-redis as closely as possible.
 //
 // [RediSearch]: https://redis.io/docs/stack/search/
 // [RedisJSON]: https://redis.io/docs/stack/json/
-package grstack
+package grsearch
 
 import (
 	"context"

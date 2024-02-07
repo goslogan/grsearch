@@ -1,4 +1,4 @@
-package grstack_test
+package grsearch_test
 
 import (
 	"time"
@@ -6,16 +6,16 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/goslogan/grstack"
+	"github.com/goslogan/grsearch"
 )
 
 var _ = Describe("We can build query options", Label("aggregate", "search", "ft.aggregate"), func() {
 
 	It("can execute a very simple aggregate", func() {
-		opts := grstack.NewAggregateBuilder().
-			GroupBy(grstack.NewGroupByBuilder().
+		opts := grsearch.NewAggregateBuilder().
+			GroupBy(grsearch.NewGroupByBuilder().
 				Property("@owner").
-				Reduce(grstack.ReduceSum("@balance", "total_balance")).
+				Reduce(grsearch.ReduceSum("@balance", "total_balance")).
 				GroupBy())
 
 		cmd := client.FTAggregate(ctx, "hcustomers", "*", opts.Options())

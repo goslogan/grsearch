@@ -1,4 +1,4 @@
-# grstack
+# grsearch
 
 go-redis based interface to RediSearch & RedisJSON designed to extend the go-redis
 API and follow its style as closely as possible.
@@ -15,22 +15,22 @@ Search results are returned in using the `SearchResult` struct. Documents in sea
 The `IndexBuilder`, `QueryBuilder` and `AggregateBuilder` types provide a fluent interface to the options structs.
 
 ```
-options := grstack.NewIndexBuilder().
+options := grsearch.NewIndexBuilder().
         On("hash").
 		Prefix("account:").
-		Schema(grstack.TagAttribute{
+		Schema(grsearch.TagAttribute{
 			Name    : "account_id",
 			Alias   : "id",
 			Sortable: true}).
-        Schema(grstack.TextAttribute{Name: "customer",
-		    Sortable: true}).Schema(grstack.TextAttribute{
+        Schema(grsearch.TextAttribute{Name: "customer",
+		    Sortable: true}).Schema(grsearch.TextAttribute{
 		    Name    : "email",
 		    Sortable: true}).
-        Schema(grstack.TagAttribute{
+        Schema(grsearch.TagAttribute{
 		    Name    : "account_owner",
 		    Alias   : "owner",
 		    Sortable: true}).
-        Schema(grstack.NumericAttribute{
+        Schema(grsearch.NumericAttribute{
 		    Name    : "balance",
 		    Sortable: true,
 	}).Options()
@@ -41,24 +41,24 @@ as opposed to
 
 
 ```
-options := grstack.NewIndexOptions()
+options := grsearch.NewIndexOptions()
 options.On = "hash"
 options.Prefix = []string{"account:"}
-options.Schema = []grstack.SchemaAttribute{
-	grstack.TagAttribute{
+options.Schema = []grsearch.SchemaAttribute{
+	grsearch.TagAttribute{
 		Name    : "account_id",
 		Alias   : "id",
 		Sortable: true},
-    grstack.TextAttribute{Name: "customer",
+    grsearch.TextAttribute{Name: "customer",
 		Sortable: true},
-	grstack.TextAttribute{
+	grsearch.TextAttribute{
 		Name    : "email",
 		Sortable: true},
-    grstack.TagAttribute{
+    grsearch.TagAttribute{
 		Name    : "account_owner",
 		Alias   : "owner",
 		Sortable: true},
-	Schema(grstack.NumericAttribute{
+	Schema(grsearch.NumericAttribute{
 		Name    : "balance",
 		Sortable: true,
 	}
@@ -72,11 +72,11 @@ import (
 	"context"
 	"log"
 
-	"github.com/goslogan/grstack"
+	"github.com/goslogan/grsearch"
 	"github.com/redis/go-redis/v9"
 )
 
-client := grstack.NewClient(&redis.Options{})
+client := grsearch.NewClient(&redis.Options{})
 ctx := context.Background()
 
 searchResult, err := client.FTSearch(ctx, "customers", "@id:{1128564}", nil).Results()
@@ -97,14 +97,14 @@ import (
 	"context"
 	"log"
 
-	"github.com/goslogan/grstack"
+	"github.com/goslogan/grsearch"
 	"github.com/redis/go-redis/v9"
 )
 
-client := grstack.NewClient(&redis.Options{})
+client := grsearch.NewClient(&redis.Options{})
 ctx := context.Background()
 
-options := grstack.NewQueryBuilder().
+options := grsearch.NewQueryBuilder().
 	Return("$..data", "data").
 	WithScores().
 	Options()
@@ -124,7 +124,7 @@ for id, customer := range searchResult {
 import (
 	"context"
 
-	"github.com/goslogan/grstack"
+	"github.com/goslogan/grsearch"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -132,13 +132,13 @@ import (
 	"context"
     "log"
 
-    "github.com/goslogan/grstack" 
+    "github.com/goslogan/grsearch" 
 	"github.com/redis/go-redis/v9"
     
 )
 
 
-client := grstack.NewClient(&redis.Options{})
+client := grsearch.NewClient(&redis.Options{})
 ctx := context.Background()
 
 if _, err := client.JSONSet(ctx, "helloworld", "$", `{"a": 1, "b": 2, "hello": "world"}`).Result(); err != nil {

@@ -1,4 +1,4 @@
-package grstack
+package grsearch
 
 import (
 	"context"

@@ -1,7 +1,7 @@
-package grstack_test
+package grsearch_test
 
 import (
-	"github.com/goslogan/grstack"
+	"github.com/goslogan/grsearch"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -9,9 +9,9 @@ import (
 var _ = Describe("Create", Label("json", "query", "ft.create"), func() {
 
 	It("can build the simplest JSON index", func() {
-		options := grstack.NewIndexOptions()
+		options := grsearch.NewIndexOptions()
 		options.On = "JSON"
-		options.Schema = []grstack.SchemaAttribute{&grstack.TextAttribute{
+		options.Schema = []grsearch.SchemaAttribute{&grsearch.TextAttribute{
 			Name:  "$.foo",
 			Alias: "bar",
 		}}
@@ -21,10 +21,10 @@ var _ = Describe("Create", Label("json", "query", "ft.create"), func() {
 	})
 
 	It("can build a json index with options", func() {
-		options := grstack.NewIndexOptions()
+		options := grsearch.NewIndexOptions()
 		options.On = "JSON"
 		options.Prefix = []string{"jaccount:"}
-		options.Schema = []grstack.SchemaAttribute{&grstack.TextAttribute{
+		options.Schema = []grsearch.SchemaAttribute{&grsearch.TextAttribute{
 			Name:  "$.foo",
 			Alias: "bar",
 		}}

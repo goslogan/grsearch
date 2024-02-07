@@ -1,4 +1,4 @@
-package grstack_test
+package grsearch_test
 
 import (
 	"bytes"
@@ -14,7 +14,7 @@ import (
 
 	_ "embed"
 
-	grstack "github.com/goslogan/grstack"
+	grsearch "github.com/goslogan/grsearch"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/redis/go-redis/v9"
@@ -32,7 +32,7 @@ var commandData string
 //go:embed testdata/commands_test.template
 var commandJSON string
 
-var client *grstack.Client
+var client *grsearch.Client
 var ctx = context.Background()
 
 // convert strings that need to stay "as one for tokenising"
@@ -130,27 +130,27 @@ func createHashTestData() {
 
 func createHashIndexes() {
 	fmt.Println("Generating Hash Indexes...")
-	Expect(client.FTCreate(ctx, "hcustomers", grstack.NewIndexBuilder().
+	Expect(client.FTCreate(ctx, "hcustomers", grsearch.NewIndexBuilder().
 		Prefix("haccount:").
-		Schema(&grstack.TagAttribute{
+		Schema(&grsearch.TagAttribute{
 			Name:     "account_id",
 			Alias:    "id",
-			Sortable: true}).Schema(&grstack.TextAttribute{Name: "customer",
-		Sortable: true}).Schema(&grstack.TextAttribute{
+			Sortable: true}).Schema(&grsearch.TextAttribute{Name: "customer",
+		Sortable: true}).Schema(&grsearch.TextAttribute{
 		Name:     "email",
-		Sortable: false}).Schema(&grstack.TagAttribute{
+		Sortable: false}).Schema(&grsearch.TagAttribute{
 		Name:     "account_owner",
 		Alias:    "owner",
-		Sortable: true}).Schema(&grstack.NumericAttribute{
+		Sortable: true}).Schema(&grsearch.NumericAttribute{
 		Name:     "balance",
 		Sortable: true,
 	}).Options()).Err()).NotTo(HaveOccurred())
 
-	Expect(client.FTCreate(ctx, "hdocs", grstack.NewIndexBuilder().
+	Expect(client.FTCreate(ctx, "hdocs", grsearch.NewIndexBuilder().
 		Prefix("hcommand:").
-		Schema(&grstack.TagAttribute{
+		Schema(&grsearch.TagAttribute{
 			Name:     "group",
-			Sortable: true}).Schema(&grstack.TextAttribute{
+			Sortable: true}).Schema(&grsearch.TextAttribute{
 		Name:     "command",
 		Sortable: true}).Options()).Err()).NotTo(HaveOccurred())
 
@@ -159,37 +159,37 @@ func createHashIndexes() {
 func createJSONIndexes() {
 
 	fmt.Println("Generating JSON Indexes...")
-	cmd := client.FTCreate(ctx, "jcustomers", grstack.NewIndexBuilder().
+	cmd := client.FTCreate(ctx, "jcustomers", grsearch.NewIndexBuilder().
 		On("json").
 		Prefix("jaccount:").
-		Schema(&grstack.TagAttribute{
+		Schema(&grsearch.TagAttribute{
 			Name:     "$.account_id",
 			Alias:    "id",
 			Sortable: true}).
-		Schema(&grstack.TextAttribute{
+		Schema(&grsearch.TextAttribute{
 			Name:     "$.customer",
 			Alias:    "customer",
 			Sortable: true}).
-		Schema(&grstack.TextAttribute{
+		Schema(&grsearch.TextAttribute{
 			Name:     "$.email",
 			Alias:    "email",
 			Sortable: false}).
-		Schema(&grstack.TagAttribute{
+		Schema(&grsearch.TagAttribute{
 			Name:     "$.account_owner",
 			Alias:    "owner",
 			Sortable: true}).
-		Schema(&grstack.NumericAttribute{
+		Schema(&grsearch.NumericAttribute{
 			Name:     "$.balance",
 			Alias:    "balance",
 			Sortable: true,
 		}).Options())
 	Expect(cmd.Err()).NotTo(HaveOccurred())
 
-	Expect(client.FTCreate(ctx, "jdocs", grstack.NewIndexBuilder().
+	Expect(client.FTCreate(ctx, "jdocs", grsearch.NewIndexBuilder().
 		Prefix("jcommand:").
-		Schema(&grstack.TagAttribute{
+		Schema(&grsearch.TagAttribute{
 			Name:     "$.group",
-			Sortable: true}).Schema(&grstack.TextAttribute{
+			Sortable: true}).Schema(&grsearch.TextAttribute{
 		Name:     "$.command",
 		Sortable: true}).Options()).Err()).NotTo(HaveOccurred())
 
@@ -200,10 +200,10 @@ func createJSONIndexes() {
 	Expect(client.JSONSet(ctx, "jcomplex1", "$", doc1).Err()).NotTo(HaveOccurred())
 	Expect(client.JSONSet(ctx, "jcomplex2", "$", doc2).Err()).NotTo(HaveOccurred())
 	Expect(client.FTCreate(ctx, "jsoncomplex",
-		grstack.NewIndexBuilder().
+		grsearch.NewIndexBuilder().
 			On("json").
 			Prefix("jcomplex").
-			Schema(&grstack.NumericAttribute{
+			Schema(&grsearch.NumericAttribute{
 				Name:     "$..data",
 				Alias:    "datum",
 				Sortable: true,
@@ -219,7 +219,7 @@ func TestFtsearch(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	client = grstack.NewClient(&redis.Options{})
+	client = grsearch.NewClient(&redis.Options{})
 	Expect(client.Ping(ctx).Err()).NotTo(HaveOccurred())
 	Expect(client.FlushAll(ctx).Err()).NotTo(HaveOccurred())
 	createHashTestData()

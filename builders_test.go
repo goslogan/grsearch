@@ -1,9 +1,9 @@
-package grstack_test
+package grsearch_test
 
 import (
 	"time"
 
-	"github.com/goslogan/grstack"
+	"github.com/goslogan/grsearch"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -11,14 +11,14 @@ import (
 var _ = Describe("We can build query options", Label("builders", "ft.search"), func() {
 
 	It("can construct default query options", func() {
-		base := grstack.NewQueryOptions()
-		built := grstack.NewQueryBuilder()
+		base := grsearch.NewQueryOptions()
+		built := grsearch.NewQueryBuilder()
 
 		Expect(base).To(Equal(built.Options()))
 	})
 
 	It("can construct options with simple flags set", func() {
-		base := grstack.NewQueryOptions()
+		base := grsearch.NewQueryOptions()
 		base.Dialect = 2
 		base.ExplainScore = true
 		base.NoContent = true
@@ -26,7 +26,7 @@ var _ = Describe("We can build query options", Label("builders", "ft.search"), f
 		base.NoStopWords = true
 		base.Verbatim = true
 
-		built := grstack.NewQueryBuilder().
+		built := grsearch.NewQueryBuilder().
 			Dialect(2).
 			ExplainScore().
 			NoContent().
@@ -39,13 +39,13 @@ var _ = Describe("We can build query options", Label("builders", "ft.search"), f
 	})
 
 	It("can construct queries with parameters", func() {
-		base := grstack.NewQueryOptions()
+		base := grsearch.NewQueryOptions()
 		base.Params = map[string]interface{}{
 			"foo": "one",
 			"bar": 2,
 		}
 
-		built := grstack.NewQueryBuilder().
+		built := grsearch.NewQueryBuilder().
 			Param("foo", "one").
 			Param("bar", 2)
 
@@ -53,8 +53,8 @@ var _ = Describe("We can build query options", Label("builders", "ft.search"), f
 	})
 
 	It("can construct queries with geofilters", func() {
-		base := grstack.NewQueryOptions()
-		base.GeoFilters = []grstack.GeoFilter{
+		base := grsearch.NewQueryOptions()
+		base.GeoFilters = []grsearch.GeoFilter{
 			{
 				Attribute: "test",
 				Long:      100,
@@ -63,22 +63,22 @@ var _ = Describe("We can build query options", Label("builders", "ft.search"), f
 				Units:     "m",
 			},
 		}
-		built := grstack.NewQueryBuilder().
+		built := grsearch.NewQueryBuilder().
 			GeoFilter("test", 100, 200, 300, "m")
 
 		Expect(base).To(Equal(built.Options()))
 	})
 
 	It("can construct queries with filters", func() {
-		base := grstack.NewQueryOptions()
-		base.Filters = []grstack.QueryFilter{
+		base := grsearch.NewQueryOptions()
+		base.Filters = []grsearch.QueryFilter{
 			{
 				Attribute: "test",
 				Min:       -100,
 				Max:       "+inf",
 			},
 		}
-		built := grstack.NewQueryBuilder().
+		built := grsearch.NewQueryBuilder().
 			Filter("test", -100, "+inf")
 
 		Expect(base).To(Equal(built.Options()))
@@ -89,20 +89,20 @@ var _ = Describe("We can build query options", Label("builders", "ft.search"), f
 var _ = Describe("We can build aggregate options", Label("builders", "ft.aggregate"), func() {
 
 	It("can construct default query options", func() {
-		base := grstack.NewAggregateOptions()
-		built := grstack.NewAggregateBuilder()
+		base := grsearch.NewAggregateOptions()
+		built := grsearch.NewAggregateBuilder()
 
 		Expect(base).To(Equal(built.Options()))
 	})
 
 	It("can construct options with simple flags set", func() {
-		base := grstack.NewAggregateOptions()
+		base := grsearch.NewAggregateOptions()
 		base.Dialect = 2
-		base.Steps = append(base.Steps, grstack.AggregateFilter("@test != 3"))
+		base.Steps = append(base.Steps, grsearch.AggregateFilter("@test != 3"))
 		base.Timeout = time.Duration(1000)
 		base.Verbatim = true
 
-		built := grstack.NewAggregateBuilder().
+		built := grsearch.NewAggregateBuilder().
 			Dialect(2).
 			Timeout(time.Duration(1000)).
 			Verbatim().
@@ -113,13 +113,13 @@ var _ = Describe("We can build aggregate options", Label("builders", "ft.aggrega
 	})
 
 	It("can construct queries with parameters", func() {
-		base := grstack.NewAggregateOptions()
+		base := grsearch.NewAggregateOptions()
 		base.Params = map[string]interface{}{
 			"foo": "one",
 			"bar": 2,
 		}
 
-		built := grstack.NewAggregateBuilder().
+		built := grsearch.NewAggregateBuilder().
 			Param("foo", "one").
 			Param("bar", 2)
 
@@ -127,10 +127,10 @@ var _ = Describe("We can build aggregate options", Label("builders", "ft.aggrega
 	})
 
 	It("can construct a single group by", func() {
-		base := grstack.NewAggregateOptions()
-		base.Steps = append(base.Steps, &grstack.AggregateGroupBy{
+		base := grsearch.NewAggregateOptions()
+		base.Steps = append(base.Steps, &grsearch.AggregateGroupBy{
 			Properties: []string{"@name"},
-			Reducers: []grstack.AggregateReducer{
+			Reducers: []grsearch.AggregateReducer{
 				{
 					Name: "count",
 					As:   "nameCount",
@@ -138,45 +138,45 @@ var _ = Describe("We can build aggregate options", Label("builders", "ft.aggrega
 			},
 		})
 
-		built := grstack.NewAggregateBuilder().
-			GroupBy(grstack.NewGroupByBuilder().
+		built := grsearch.NewAggregateBuilder().
+			GroupBy(grsearch.NewGroupByBuilder().
 				Properties([]string{"@name"}).
-				Reduce(grstack.ReduceCount("nameCount")).
+				Reduce(grsearch.ReduceCount("nameCount")).
 				GroupBy())
 
 		Expect(base).To(Equal(built.Options()))
 	})
 
 	It("can build a complex aggregate", func() {
-		base := grstack.NewAggregateOptions()
-		base.Steps = append(base.Steps, &grstack.AggregateApply{
+		base := grsearch.NewAggregateOptions()
+		base.Steps = append(base.Steps, &grsearch.AggregateApply{
 			Expression: "@timestamp - (@timestamp % 86400)",
 			As:         "day",
 		})
-		base.Steps = append(base.Steps, &grstack.AggregateGroupBy{
+		base.Steps = append(base.Steps, &grsearch.AggregateGroupBy{
 			Properties: []string{"@day", "@country"},
-			Reducers: []grstack.AggregateReducer{{
+			Reducers: []grsearch.AggregateReducer{{
 				Name: "count",
 				As:   "num_visits",
 			}}})
 
-		base.Steps = append(base.Steps, &grstack.AggregateSort{
-			Keys: []grstack.AggregateSortKey{{
+		base.Steps = append(base.Steps, &grsearch.AggregateSort{
+			Keys: []grsearch.AggregateSortKey{{
 				Name:  "@day",
-				Order: grstack.SortAsc,
+				Order: grsearch.SortAsc,
 			}, {
 				Name:  "@country",
-				Order: grstack.SortDesc,
+				Order: grsearch.SortDesc,
 			}},
 		})
 
-		built := grstack.NewAggregateBuilder().
+		built := grsearch.NewAggregateBuilder().
 			Apply("@timestamp - (@timestamp % 86400)", "day").
-			GroupBy(grstack.NewGroupByBuilder().
+			GroupBy(grsearch.NewGroupByBuilder().
 				Properties([]string{"@day", "@country"}).
-				Reduce(grstack.ReduceCount("num_visits")).
+				Reduce(grsearch.ReduceCount("num_visits")).
 				GroupBy()).
-			SortBy([]grstack.AggregateSortKey{{Name: "@day", Order: grstack.SortAsc}, {Name: "@country", Order: grstack.SortDesc}})
+			SortBy([]grsearch.AggregateSortKey{{Name: "@day", Order: grsearch.SortAsc}, {Name: "@country", Order: grsearch.SortDesc}})
 
 		Expect(base).To(Equal(built.Options()))
 

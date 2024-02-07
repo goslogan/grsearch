@@ -1,4 +1,4 @@
-module github.com/goslogan/grstack
+module github.com/goslogan/grsearch
 
 go 1.18
 

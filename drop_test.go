@@ -1,7 +1,7 @@
-package grstack_test
+package grsearch_test
 
 import (
-	"github.com/goslogan/grstack"
+	"github.com/goslogan/grsearch"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -11,7 +11,7 @@ var _ = Describe("Drop", func() {
 	// TODO - fix this - we don't want to mess up the tests
 
 	It("can drop an index but keep the docs", func() {
-		createCmd := client.FTCreate(ctx, "drop_test", grstack.NewIndexBuilder().Schema(&grstack.TextAttribute{
+		createCmd := client.FTCreate(ctx, "drop_test", grsearch.NewIndexBuilder().Schema(&grsearch.TextAttribute{
 			Name:  "foo",
 			Alias: "bar",
 		}).Options())
