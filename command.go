@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/goslogan/grstack/internal"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -100,7 +101,15 @@ func (cmd *QueryCmd) postprocessRESP3Response(baseResponse interface{}) (*QueryR
 
 	output := QueryResults{Results: []*QueryResult{}}
 	output.Attributes = response["attributes"].([]interface{})
-	output.Errors = response["error"].([]interface{})
+
+	if val, ok := response["error"]; ok {
+		output.Errors = val.([]interface{})
+	}
+
+	if val, ok := response["warning"]; ok {
+		output.Warnings = val.([]interface{})
+	}
+
 	output.Format = response["format"].(string)
 	output.TotalResults = response["total_results"].(int64)
 
@@ -351,21 +360,20 @@ func (cmd *InfoCmd) postProcess() error {
 	rawResult := cmd.Cmd.Val()
 	var mapped map[interface{}]interface{}
 
-	switch rawResult.(type) {
-		case []interface{}:
-			mapResult := cmd.toMap(rawResult)
-		case map[interface{}]interface{}
-			mapped = rawResult
-		default:
-			return fmt.Errorf("redis: FT.INFO - invalid response type")
+	switch v := rawResult.(type) {
+	case []interface{}:
+		mapped = internal.ToMap(v)
+	case map[interface{}]interface{}:
+		mapped = v
+	default:
+		return fmt.Errorf("redis: FT.INFO - invalid response type")
 	}
 
-	
+	info := Info{}
+	err := info.parse(mapped)
 
-	fmt.Printf("%v", rawResult)
-
-	// c.SetVal(&info)
-	return nil
+	cmd.SetVal(&info)
+	return err
 }
 
 /*******************************************************************************
@@ -434,50 +442,69 @@ func (cmd *IntSlicePointerCmd) Result() ([]*int64, error) {
 *******************************************************************************/
 
 type AggregateCmd struct {
-	redis.SliceCmd
-	val []map[string]string
+	redis.Cmd
+	val AggregateResults
 }
 
 func NewAggregateCmd(ctx context.Context, args ...interface{}) *AggregateCmd {
 	return &AggregateCmd{
-		SliceCmd: *redis.NewSliceCmd(ctx, args...),
+		Cmd: *redis.NewCmd(ctx, args...),
 	}
 }
 
-func (c *AggregateCmd) postProcess() error {
-	if len(c.SliceCmd.Val()) == 0 {
-		c.val = nil
-		c.SetErr(nil)
-		return nil
+func (cmd *AggregateCmd) postProcess() error {
+
+	if cmd.Err() != nil {
+		return cmd.Err()
 	}
 
-	results := make([]map[string]string, len(c.SliceCmd.Val())-1)
+	rawResults := cmd.Cmd.Val()
+	results := AggregateResults{Results: make([]map[string]interface{}, 0)}
 
-	for n, entry := range c.SliceCmd.Val() {
-
-		if n > 0 {
-			row := entry.([]interface{})
-			asStrings := map[string]string{}
-			for m := 0; m < len(row); m += 2 {
-				asStrings[row[m].(string)] = row[m+1].(string)
+	// RESP2 v RESP3
+	switch r := rawResults.(type) {
+	case []interface{}:
+		results.TotalResults = int64(len(r))
+		results.Format = "STRING"
+		for _, data := range r {
+			result := map[string]interface{}{}
+			for k, v := range internal.ToMap(data) {
+				result[k.(string)] = v
 			}
-			results[n-1] = asStrings
+			results.Results = append(results.Results, result)
+		}
+	case map[interface{}]interface{}:
+		results.TotalResults, _ = internal.Int64(r["total_results"])
+		results.Format = r["format"].(string)
+		if w, ok := r["error"]; ok {
+			results.Warnings = w.([]interface{})
+		}
+		results.Warnings = r["warning"].([]interface{})
+		if e, ok := r["error"]; ok {
+			results.Errors = e.([]interface{})
+		}
+		for _, data := range r["results"].([]interface{}) {
+			result := map[string]interface{}{}
+			for k, v := range data.(map[interface{}]interface{}) {
+				result[k.(string)] = v
+			}
+			results.Results = append(results.Results, result)
 		}
 	}
 
-	c.SetVal(results)
+	cmd.SetVal(results)
 	return nil
 }
 
-func (cmd *AggregateCmd) SetVal(val []map[string]string) {
+func (cmd *AggregateCmd) SetVal(val AggregateResults) {
 	cmd.val = val
 }
 
-func (cmd *AggregateCmd) Val() []map[string]string {
+func (cmd *AggregateCmd) Val() AggregateResults {
 	return cmd.val
 }
 
-func (cmd *AggregateCmd) Result() ([]map[string]string, error) {
+func (cmd *AggregateCmd) Result() (AggregateResults, error) {
 	return cmd.Val(), cmd.Err()
 }
 

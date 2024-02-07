@@ -14,6 +14,7 @@ type QueryResults struct {
 	Results      []*QueryResult
 	keymap       map[string]int
 	Errors       []interface{}
+	Warnings     []interface{}
 	Format       string
 	Attributes   []interface{}
 }

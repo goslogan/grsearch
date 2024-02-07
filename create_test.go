@@ -9,27 +9,31 @@ import (
 var _ = Describe("Create", Label("json", "query", "ft.create"), func() {
 
 	It("can build the simplest JSON index", func() {
-		createCmd := client.FTCreate(ctx, "jsimple", grstack.NewIndexBuilder().Schema(&grstack.TextAttribute{
+		options := grstack.NewIndexOptions()
+		options.On = "JSON"
+		options.Schema = []grstack.SchemaAttribute{&grstack.TextAttribute{
 			Name:  "$.foo",
 			Alias: "bar",
-		}).On("json").Options())
+		}}
+		createCmd := client.FTCreate(ctx, "jsimple", options)
 		Expect(createCmd.Err()).NotTo(HaveOccurred())
-		Expect(createCmd.String()).To(Equal("ft.create jsimple on json score 1 schema $.foo as bar text: true"))
+		Expect(createCmd.String()).To(Equal("FT.CREATE jsimple ON JSON SCORE 1 SCHEMA $.foo AS bar TEXT: true"))
 	})
 
 	It("can build a json index with options", func() {
-		createCmd := client.FTCreate(ctx, "jwithoptions", grstack.NewIndexBuilder().
-			Prefix("jaccount:").
-			On("json").
-			MaxTextFields().
-			Score(0.5).
-			Language("spanish").
-			Schema(&grstack.TextAttribute{
-				Name:  "$.foo",
-				Alias: "bar",
-			}).Options())
+		options := grstack.NewIndexOptions()
+		options.On = "JSON"
+		options.Prefix = []string{"jaccount:"}
+		options.Schema = []grstack.SchemaAttribute{&grstack.TextAttribute{
+			Name:  "$.foo",
+			Alias: "bar",
+		}}
+		options.MaxTextFields = true
+		options.Score = 0.5
+		options.Language = "spanish"
+		createCmd := client.FTCreate(ctx, "jwithoptions", options)
 		Expect(createCmd.Err()).NotTo(HaveOccurred())
-		Expect(createCmd.String()).To(Equal("ft.create jwithoptions on json prefix 1 jaccount: language spanish score 0.5 maxtextfields schema $.foo as bar text: true"))
+		Expect(createCmd.String()).To(Equal("FT.CREATE jwithoptions ON JSON PREFIX 1 jaccount: LANGUAGE spanish SCORE 0.5 MAXTEXTFIELDS SCHEMA $.foo AS bar TEXT: true"))
 	})
 
 })

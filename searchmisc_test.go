@@ -59,16 +59,16 @@ var _ = Describe("Tagvals", Label("search", "ft.tagvals"), func() {
 var _ = Describe("Info", Label("search", "ft.info"), func() {
 
 	It("can get info from a simple index", func() {
-		cmd := client.FTInfo(ctx, "jsoncomplex")
+		cmd := client.FTInfo(ctx, "hcustomers")
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 	})
 
 	It("can recreate an index", Label("rebuild"), func() {
 		cmd1 := client.FTInfo(ctx, "hcustomers")
 		Expect(cmd1.Err()).NotTo(HaveOccurred())
-		cmd2 := client.FTCreate(ctx, "hcustomersdup", &cmd1.Val().Index)
+		cmd2 := client.FTCreate(ctx, "hcustomersdup", cmd1.Val().Index)
 		Expect(cmd2.Err()).NotTo(HaveOccurred())
-		time.Sleep(2 * time.Second)
+		time.Sleep(5 * time.Second)
 		cmd3 := client.FTInfo(ctx, "hcustomersdup")
 		Expect(cmd3.Err()).NotTo(HaveOccurred())
 		Expect(cmd1.Val().Index).To(Equal(cmd3.Val().Index))

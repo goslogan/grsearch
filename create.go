@@ -1,8 +1,6 @@
 package grstack
 
 import (
-	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/goslogan/grstack/internal"
@@ -88,7 +86,7 @@ type GeometryAttribute struct {
 
 type SchemaAttribute interface {
 	serialize() []interface{}
-	parse(key string, value interface{})
+	parseFromInfo(map[interface{}]interface{})
 }
 
 // NewIndexOptions returns an initialised IndexOptions struct with defaults set
@@ -103,60 +101,60 @@ func NewIndexOptions() *IndexOptions {
 
 func (i *IndexOptions) serialize() []interface{} {
 
-	args := []interface{}{"on", i.On}
-	args = append(args, internal.SerializeCountedArgs("prefix", false, i.Prefix)...)
+	args := []interface{}{"ON", strings.ToUpper(i.On)}
+	args = append(args, internal.SerializeCountedArgs("PREFIX", false, i.Prefix)...)
 
 	if i.Filter != "" {
-		args = append(args, "filter", i.Filter)
+		args = append(args, "FILTER", i.Filter)
 	}
 
 	if i.Language != "" {
-		args = append(args, "language", i.Language)
+		args = append(args, "LANGUAGE", i.Language)
 	}
 
 	if i.LanguageField != "" {
-		args = append(args, "language_field", i.LanguageField)
+		args = append(args, "LANGUAGE_FIELD", i.LanguageField)
 	}
 
-	args = append(args, "score", i.Score)
+	args = append(args, "SCORE", i.Score)
 
 	if i.ScoreField != "" {
-		args = append(args, "score_field", i.ScoreField)
+		args = append(args, "SCORE_FIELD", i.ScoreField)
 	}
 
 	if i.MaxTextFields {
-		args = append(args, "maxtextfields")
+		args = append(args, "MAXTEXTFIELDS")
 	}
 
 	if i.NoOffsets {
-		args = append(args, "nooffsets")
+		args = append(args, "NOOFFSETS")
 	}
 
 	if i.Temporary > 0 {
-		args = append(args, "temporary", i.Temporary)
+		args = append(args, "TEMPORARY", i.Temporary)
 	}
 
 	if i.NoHighlight && !i.NoOffsets {
-		args = append(args, "nohl")
+		args = append(args, "NOHL")
 	}
 
 	if i.NoFields {
-		args = append(args, "nofields")
+		args = append(args, "NOFIELDS")
 	}
 
 	if i.NoFreqs {
-		args = append(args, "nofreqs")
+		args = append(args, "NOFREQS")
 	}
 
 	if i.UseStopWords {
-		args = append(args, internal.SerializeCountedArgs("stopwords", true, i.StopWords)...)
+		args = append(args, internal.SerializeCountedArgs("STOPWORDS", true, i.StopWords)...)
 	}
 
 	if i.SkipInitialscan {
-		args = append(args, "skipinitialscan")
+		args = append(args, "SKIPINITIALSCAN")
 	}
 
-	schema := []interface{}{"schema"}
+	schema := []interface{}{"SCHEMA"}
 
 	for _, attrib := range i.Schema {
 		schema = append(schema, attrib.serialize()...)
@@ -169,16 +167,16 @@ func (a *NumericAttribute) serialize() []interface{} {
 
 	attribs := []interface{}{a.Name}
 	if a.Alias != "" {
-		attribs = append(attribs, "as", a.Alias)
+		attribs = append(attribs, "AS", a.Alias)
 	}
-	attribs = append(attribs, "numeric")
+	attribs = append(attribs, "NUMERIC")
 
 	if a.Sortable {
-		attribs = append(attribs, "sortable")
+		attribs = append(attribs, "SORTABLE")
 	}
 
 	if a.NoIndex {
-		attribs = append(attribs, "noindex")
+		attribs = append(attribs, "NOINDEX")
 	}
 
 	return attribs
@@ -188,26 +186,26 @@ func (a *TagAttribute) serialize() []interface{} {
 
 	attribs := []interface{}{a.Name}
 	if a.Alias != "" {
-		attribs = append(attribs, "as", a.Alias)
+		attribs = append(attribs, "AS", a.Alias)
 	}
-	attribs = append(attribs, "tag")
+	attribs = append(attribs, "TAG")
 
 	if a.Separator != "" {
-		attribs = append(attribs, "separator", a.Separator)
+		attribs = append(attribs, "SEPARATOR", a.Separator)
 	}
 
 	if a.Sortable {
-		attribs = append(attribs, "sortable")
+		attribs = append(attribs, "SORTABLE")
 		if a.UnNormalized {
-			attribs = append(attribs, "unf")
+			attribs = append(attribs, "UNF")
 		}
 	}
 
 	if a.CaseSensitive {
-		attribs = append(attribs, "casesensitive")
+		attribs = append(attribs, "CASESENSITIVE")
 	}
 	if a.NoIndex {
-		attribs = append(attribs, "noindex")
+		attribs = append(attribs, "NOINDEX")
 	}
 
 	return attribs
@@ -217,30 +215,30 @@ func (a *TextAttribute) serialize() []interface{} {
 
 	attribs := []interface{}{a.Name}
 	if a.Alias != "" {
-		attribs = append(attribs, "as", a.Alias)
+		attribs = append(attribs, "AS", a.Alias)
 	}
 
-	attribs = append(attribs, "text")
+	attribs = append(attribs, "TEXT")
 
 	if a.Weight != 0 {
-		attribs = append(attribs, "weight", a.Weight)
+		attribs = append(attribs, "WEIGHT", a.Weight)
 	}
 
 	if a.Sortable {
-		attribs = append(attribs, "sortable")
+		attribs = append(attribs, "SORTABLE")
 		if a.UnNormalized {
-			attribs = append(attribs, "unf")
+			attribs = append(attribs, "UNF")
 		}
 	}
 	if a.Phonetic != "" {
-		attribs = append(attribs, "phonetic", a.Phonetic)
+		attribs = append(attribs, "PHONETIC", a.Phonetic)
 	}
 	if a.NoStem {
-		attribs = append(attribs, "nostem")
+		attribs = append(attribs, "NOSTEM")
 	}
 
 	if a.NoIndex {
-		attribs = append(attribs, "noindex")
+		attribs = append(attribs, "NOINDEX")
 	}
 
 	return attribs
@@ -249,9 +247,9 @@ func (a *TextAttribute) serialize() []interface{} {
 func (a *GeometryAttribute) serialize() []interface{} {
 	attribs := []interface{}{a.Name}
 	if a.Alias != "" {
-		attribs = append(attribs, "as", a.Alias)
+		attribs = append(attribs, "AS", a.Alias)
 	}
-	attribs = append(attribs, "geometry")
+	attribs = append(attribs, "GEOMETRY")
 
 	return attribs
 }
@@ -259,17 +257,17 @@ func (a *GeometryAttribute) serialize() []interface{} {
 func (a *GeoAttribute) serialize() []interface{} {
 	attribs := []interface{}{a.Name}
 	if a.Alias != "" {
-		attribs = append(attribs, "as", a.Alias)
+		attribs = append(attribs, "AS", a.Alias)
 	}
 
-	attribs = append(attribs, "geo")
+	attribs = append(attribs, "GEO")
 
 	if a.Sortable {
-		attribs = append(attribs, "sortable")
+		attribs = append(attribs, "SORTABLE")
 	}
 
 	if a.NoIndex {
-		attribs = append(attribs, "noindex")
+		attribs = append(attribs, "NOINDEX")
 	}
 	return attribs
 }
@@ -277,222 +275,35 @@ func (a *GeoAttribute) serialize() []interface{} {
 func (a *VectorAttribute) serialize() []interface{} {
 	attribs := []interface{}{a.Name}
 	if a.Alias != "" {
-		attribs = append(attribs, "as", a.Alias)
+		attribs = append(attribs, "AS", a.Alias)
 	}
 
-	attribs = append(attribs, "vector")
+	attribs = append(attribs, "VECTOR")
 	attribs = append(attribs, a.Algorithm)
 
-	params := []interface{}{"type", a.Type, "dim", a.Dim, "distance_metric", a.DistanceMetric}
+	params := []interface{}{"TYPE", a.Type, "DIM", a.Dim, "DISTANCE_METRIC", a.DistanceMetric}
 	if a.InitialCap != 0 {
-		params = append(params, "initial_cap", a.InitialCap)
+		params = append(params, "INITIAL_CAP", a.InitialCap)
 	}
-	if strings.ToLower(a.Algorithm) == "flat" && a.BlockSize != 0 {
-		params = append(params, "block_size", a.BlockSize)
+	if strings.ToLower(a.Algorithm) == "FLAT" && a.BlockSize != 0 {
+		params = append(params, "BLOCK_SIZE", a.BlockSize)
 	}
-	if strings.ToLower(a.Algorithm) == "hnsw" {
+	if strings.ToLower(a.Algorithm) == "HNSW" {
 		if a.M != 0 {
-			params = append(params, "m", a.M)
+			params = append(params, "M", a.M)
 		}
 		if a.EFConstruction != 0 {
-			params = append(params, "ef_construction", a.EFConstruction)
+			params = append(params, "EF_CONSTRUCTION", a.EFConstruction)
 		}
 		if a.EFRuntime != 0 {
-			params = append(params, "ef_runtime", a.EFRuntime)
+			params = append(params, "EF_RUNTIME", a.EFRuntime)
 		}
 		if a.Epsilon != 0 {
-			params = append(params, "epsilon", a.Epsilon)
+			params = append(params, "EPSILON", a.Epsilon)
 		}
 	}
 	attribs = append(attribs, len(params))
 	attribs = append(attribs, params...)
 
 	return attribs
-}
-
-/******************************************************************************
-* Create IndexOptions from ft.info output
-******************************************************************************/
-func (i *IndexOptions) parseInfo(input map[string]interface{}) error {
-
-	if data, ok := input["index_definition"]; ok {
-		mapped := internal.ToMap(data.([]interface{}))
-		if mapped["key_type"] == "JSON" {
-			i.On = "json"
-		}
-		i.Score, _ = mapped["default_score"].(float64)
-		i.Prefix = make([]string, len(mapped["prefixes"].([]interface{})))
-		for n, p := range mapped["prefixes"].([]interface{}) {
-			i.Prefix[n] = p.(string)
-		}
-	}
-
-	if i.Schema == nil {
-		i.Schema = make([]SchemaAttribute, 0)
-	}
-	if data, ok := input["attributes"]; ok {
-		for _, a := range data.([]interface{}) {
-			attribInfo := a.([]interface{})
-			attribType := "unidentifiable"
-			for n, t := range attribInfo {
-				if strings.ToLower(t.(string)) == "type" {
-					attribType = attribInfo[n+1].(string)
-					break
-				}
-			}
-			var attribute SchemaAttribute
-			switch strings.ToLower(attribType) {
-			case "tag":
-				attribute = &TagAttribute{}
-			case "text":
-				attribute = &TextAttribute{}
-			case "numeric":
-				attribute = &NumericAttribute{}
-			case "geo":
-				attribute = &GeoAttribute{}
-			case "geometry":
-				attribute = &GeometryAttribute{}
-			case "vector":
-				attribute = &VectorAttribute{}
-			default:
-				return fmt.Errorf("grstack: unhandled attribute type: %s", attribInfo[5].(string))
-			}
-			parseAttribute(attribInfo, attribute)
-			i.Schema = append(i.Schema, attribute)
-		}
-
-	}
-	return nil
-}
-
-func parseAttribute(info []interface{}, attrib SchemaAttribute) {
-	var (
-		paramKey string
-		paramVal interface{}
-		ok       bool
-	)
-
-	for n := 0; n < len(info); n++ {
-		if paramKey, ok = info[n].(string); ok {
-			if n+1 < len(info) {
-				paramVal = info[n+1]
-			}
-			attrib.parse(strings.ToLower(paramKey), paramVal)
-		}
-	}
-}
-
-func (a *TagAttribute) parse(key string, val interface{}) {
-
-	switch key {
-	case "identifier":
-		a.Name = val.(string)
-	case "attribute":
-		a.Alias = val.(string)
-	case "separator":
-		a.Separator = val.(string)
-	case "sortable":
-		a.Sortable = true
-	case "unf":
-		a.UnNormalized = true
-	case "casesensitive":
-		a.CaseSensitive = true
-	case "withsuffixtrie":
-		a.WithSuffixTrie = true
-	case "noindex":
-		a.NoIndex = true
-	}
-
-}
-
-func (a *TextAttribute) parse(key string, val interface{}) {
-	switch key {
-	case "identifier":
-		a.Name = val.(string)
-	case "attribute":
-		a.Alias = val.(string)
-	case "sortable":
-		a.Sortable = true
-	case "unf":
-		a.UnNormalized = true
-	case "withsuffixtrie":
-		a.WithSuffixTrie = true
-	case "noindex":
-		a.NoIndex = true
-	case "weight":
-		a.Weight = float32(val.(float64))
-	case "phonetic":
-		a.Phonetic = val.(string)
-	case "nostem":
-		a.NoStem = true
-	}
-
-}
-
-func (a *NumericAttribute) parse(key string, val interface{}) {
-	switch key {
-	case "identifier":
-		a.Name = val.(string)
-	case "attribute":
-		a.Alias = val.(string)
-	case "sortable":
-		a.Sortable = true
-	case "noindex":
-		a.NoIndex = true
-	}
-}
-
-func (a *GeometryAttribute) parse(key string, val interface{}) {
-	switch key {
-	case "identifier":
-		a.Name = val.(string)
-	case "attribute":
-		a.Alias = val.(string)
-	}
-
-}
-
-func (a *GeoAttribute) parse(key string, val interface{}) {
-	switch key {
-	case "identifier":
-		a.Name = val.(string)
-	case "attribute":
-		a.Alias = val.(string)
-	case "sortable":
-		a.Sortable = true
-	case "noindex":
-		a.NoIndex = true
-	}
-}
-
-func (a *VectorAttribute) parse(key string, val interface{}) {
-	switch key {
-	case "flat", "hnsw":
-		a.Algorithm = key
-	case "type":
-		a.Type = strings.ToLower(val.(string))
-	case "dim":
-		i, _ := strconv.ParseUint(val.(string), 10, 64)
-		a.Dim = i
-	case "distance_metric":
-		a.DistanceMetric = strings.ToLower(val.(string))
-	case "initial_cap":
-		cap, _ := strconv.ParseUint(val.(string), 10, 64)
-		a.InitialCap = cap
-	case "block_size":
-		size, _ := strconv.ParseUint(val.(string), 10, 64)
-		a.BlockSize = size
-	case "m":
-		m, _ := strconv.ParseUint(val.(string), 10, 64)
-		a.M = m
-	case "ef_construction":
-		ef, _ := strconv.ParseUint(val.(string), 10, 64)
-		a.EFConstruction = ef
-	case "ef_runtime":
-		ef, _ := strconv.ParseUint(val.(string), 10, 64)
-		a.EFRuntime = ef
-	case "epsilon":
-		ef, _ := strconv.ParseFloat(val.(string), 64)
-		a.Epsilon = ef
-	}
 }

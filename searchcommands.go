@@ -8,7 +8,7 @@ import (
 
 // FTDropIndex removes an index, optionally dropping documents in the index.
 func (c cmdable) FTDropIndex(ctx context.Context, index string, dropDocuments bool) *redis.BoolCmd {
-	args := []interface{}{"ft.dropindex", index}
+	args := []interface{}{"FT.DROPINDEX", index}
 	if dropDocuments {
 		args = append(args, "DD")
 	}
@@ -19,7 +19,7 @@ func (c cmdable) FTDropIndex(ctx context.Context, index string, dropDocuments bo
 
 // FTCreate creates a new index.
 func (c cmdable) FTCreate(ctx context.Context, index string, options *IndexOptions) *redis.BoolCmd {
-	args := []interface{}{"ft.create", index}
+	args := []interface{}{"FT.CREATE", index}
 	args = append(args, options.serialize()...)
 	cmd := redis.NewBoolCmd(ctx, args...)
 	_ = c(ctx, cmd)
@@ -28,7 +28,7 @@ func (c cmdable) FTCreate(ctx context.Context, index string, options *IndexOptio
 
 // FTAggregate runs a search query on an index, and perform saggregate transformations on the results, extracting statistics etc from them
 func (c cmdable) FTAggregate(ctx context.Context, index, query string, options *AggregateOptions) *AggregateCmd {
-	args := []interface{}{"ft.aggregate", index, query}
+	args := []interface{}{"FT.AGGREGATE", index, query}
 	args = append(args, options.serialize()...)
 	cmd := NewAggregateCmd(ctx, args...)
 	_ = c(ctx, cmd)

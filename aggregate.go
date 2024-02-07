@@ -62,6 +62,15 @@ type AggregateStep interface {
 	serializeStep() []interface{}
 }
 
+type AggregateResults struct {
+	TotalResults int64
+	Results      []map[string]interface{}
+	Errors       []interface{}
+	Warnings     []interface{}
+	Format       string
+	Attributes   []interface{}
+}
+
 // LoadAll can be used to indicate FT.AGGREGATE idx LOAD *
 var LoadAll = AggregateLoad{Name: "*"}
 

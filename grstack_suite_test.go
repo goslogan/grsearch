@@ -138,7 +138,7 @@ func createHashIndexes() {
 			Sortable: true}).Schema(&grstack.TextAttribute{Name: "customer",
 		Sortable: true}).Schema(&grstack.TextAttribute{
 		Name:     "email",
-		Sortable: true}).Schema(&grstack.TagAttribute{
+		Sortable: false}).Schema(&grstack.TagAttribute{
 		Name:     "account_owner",
 		Alias:    "owner",
 		Sortable: true}).Schema(&grstack.NumericAttribute{
@@ -173,7 +173,7 @@ func createJSONIndexes() {
 		Schema(&grstack.TextAttribute{
 			Name:     "$.email",
 			Alias:    "email",
-			Sortable: true}).
+			Sortable: false}).
 		Schema(&grstack.TagAttribute{
 			Name:     "$.account_owner",
 			Alias:    "owner",
@@ -214,7 +214,7 @@ func createJSONIndexes() {
 func TestFtsearch(t *testing.T) {
 	RegisterFailHandler(Fail)
 	suiteConfig, reportConfig := GinkgoConfiguration()
-	suiteConfig.LabelFilter = "ft.info"
+	//suiteConfig.LabelFilter = "ft.info"
 	RunSpecs(t, "Ftsearch Suite", suiteConfig, reportConfig)
 }
 
