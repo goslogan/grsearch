@@ -35,7 +35,8 @@ type HashQueryValue struct {
 }
 
 type JSONQueryValue struct {
-	Value map[string]string
+	Value       map[string]string
+	respVersion int
 }
 
 func (r *HashQueryValue) parse(respVersion int, source interface{}) error {
@@ -72,6 +73,7 @@ func (r *HashQueryValue) Scan(dst interface{}) error {
 func (r *JSONQueryValue) parse(respVersion int, source interface{}) error {
 
 	r.Value = map[string]string{}
+	r.respVersion = respVersion
 
 	if respVersion == 2 {
 		input := source.([]interface{})
@@ -89,6 +91,8 @@ func (r *JSONQueryValue) parse(respVersion int, source interface{}) error {
 	return nil
 }
 
+// Scan extracts the JSON value to structs. Since DIALECT 3 returns an array for JSON results
+// the user will need to account for that with the value passed as `to`
 func (r *JSONQueryValue) Scan(path string, to interface{}) error {
 	return json.Unmarshal([]byte(r.Value[path]), to)
 }
