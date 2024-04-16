@@ -104,7 +104,9 @@ func (c cmdable) FTTagVals(ctx context.Context, index, tag string) *redis.String
 
 // FTList returns a list of all the indexes currently defined
 func (c cmdable) FTList(ctx context.Context) *redis.StringSliceCmd {
-	cmd := redis.NewStringSliceCmd(ctx)
+	args := []interface{}{"FT._LIST"}
+
+	cmd := redis.NewStringSliceCmd(ctx, args...)
 	_ = c(ctx, cmd)
 	return cmd
 }
