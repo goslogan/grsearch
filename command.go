@@ -14,11 +14,21 @@ import (
 
 type QueryCmd struct {
 	redis.Cmd
-	val     QueryResults
-	options *QueryOptions
-	onHash  bool
-	process cmdable // used to initialise iterator
-	count   int64   // contains the total number of results if the query was successful
+	totalResults int64
+	keymap       map[string]int
+	respData     *RESPData
+	val          []*SearchResult
+	options      *QueryOptions
+	onHash       bool
+	process      cmdable // used to initialise iterator
+	count        int64   // contains the total number of results if the query was successful
+}
+
+type RESPData struct {
+	Errors     []interface{}
+	Warnings   []interface{}
+	Format     string
+	Attributes []interface{}
 }
 
 // NewQueryCmd returns an initialised query command.
@@ -29,15 +39,20 @@ func NewQueryCmd(ctx context.Context, process cmdable, onHash bool, args ...inte
 		Cmd:     *redis.NewCmd(ctx, args...),
 	}
 }
-func (cmd *QueryCmd) SetVal(val QueryResults) {
+func (cmd *QueryCmd) SetVal(val []*SearchResult) {
 	cmd.val = val
+
+	cmd.keymap = map[string]int{}
+	for n, v := range val {
+		cmd.keymap[v.Key] = n
+	}
 }
 
-func (cmd *QueryCmd) Val() QueryResults {
+func (cmd *QueryCmd) Val() []*SearchResult {
 	return cmd.val
 }
 
-func (cmd *QueryCmd) Result() (QueryResults, error) {
+func (cmd *QueryCmd) Result() ([]*SearchResult, error) {
 	return cmd.Val(), cmd.Err()
 }
 
@@ -45,7 +60,7 @@ func (cmd *QueryCmd) Len() int64 {
 	if cmd.Err() != nil {
 		return 0
 	} else {
-		return int64(len(cmd.val.Results))
+		return int64(len(cmd.val))
 	}
 }
 
@@ -67,12 +82,49 @@ func (cmd *QueryCmd) Iterator(ctx context.Context) *SearchIterator {
 	return NewSearchIterator(ctx, cmd, cmd.process)
 }
 
+// RESPData returns the additional data returned with a RESP3 response if set.
+func (cmd *QueryCmd) RESP3Data() *RESPData {
+	return cmd.respData
+}
+
+// SetRESPData stores the additional data returned with a RESP3 response if set.
+func (cmd *QueryCmd) SetRESP3Data(data *RESPData) {
+	cmd.respData = data
+}
+
+// TotalResults returns the total number of possible results for the query (whilst Count returns
+// the number of results from a single call to FTSEearch)
+func (cmd *QueryCmd) TotalResults() int64 {
+	return cmd.totalResults
+}
+
+// SetTotalResults store the total number of possible results for the query.
+func (cmd *QueryCmd) SetTotalResults(r int64) {
+	cmd.totalResults = r
+}
+
+// Key returns the individual result with the
+// given key
+func (cmd *QueryCmd) Key(key string) *SearchResult {
+	return cmd.val[cmd.keymap[key]]
+}
+
+// Keys returns the redis keys for all of the results
+func (cmd *QueryCmd) Keys() []string {
+	results := make([]string, len(cmd.keymap))
+	for i, k := range cmd.val {
+		results[i] = k.Key
+	}
+
+	return results
+}
+
 func (cmd *QueryCmd) postProcess() error {
 	if cmd.Err() != nil {
 		return cmd.Err()
 	}
 
-	var parser func(int, interface{}) (*Result, error)
+	var parser func(int, interface{}) (*SearchResult, error)
 	if cmd.onHash {
 		parser = parseHashResult
 	} else {
@@ -81,14 +133,13 @@ func (cmd *QueryCmd) postProcess() error {
 
 	rawResults := cmd.Cmd.Val()
 	var err error
-	var values *QueryResults
 
 	// RESP2 or RESP3?
 	switch rawResults.(type) {
 	case map[interface{}]interface{}:
-		values, err = cmd.postprocessRESP3Response(rawResults, parser)
+		err = cmd.postprocessRESP3Response(rawResults, parser)
 	case []interface{}:
-		values, err = cmd.postprocessRESP2Response(rawResults, parser)
+		err = cmd.postprocessRESP2Response(rawResults, parser)
 	default:
 		return fmt.Errorf("redis: %v is not a valid type search result", rawResults)
 	}
@@ -97,42 +148,44 @@ func (cmd *QueryCmd) postProcess() error {
 		return err
 	}
 
-	cmd.SetVal(*values)
 	return nil
 }
 
-func (cmd *QueryCmd) postprocessRESP3Response(baseResponse interface{}, parser func(int, interface{}) (*Result, error)) (*QueryResults, error) {
+func (cmd *QueryCmd) postprocessRESP3Response(baseResponse interface{}, parser func(int, interface{}) (*SearchResult, error)) error {
 	response, ok := baseResponse.(map[interface{}]interface{})
 
+	data := RESPData{}
+
 	if !ok {
-		return nil, fmt.Errorf("redis: FT.SEARCH response is not a map")
+		return fmt.Errorf("redis: FT.SEARCH response is not a map")
 	}
 
-	output := QueryResults{}
-	output.Attributes = response["attributes"].([]interface{})
+	data.Attributes = response["attributes"].([]interface{})
 
 	if val, ok := response["error"]; ok {
-		output.Errors = val.([]interface{})
+		data.Errors = val.([]interface{})
 	}
 
 	if val, ok := response["warning"]; ok {
-		output.Warnings = val.([]interface{})
+		data.Warnings = val.([]interface{})
 	}
 
-	output.Format = response["format"].(string)
-	output.TotalResults = response["total_results"].(int64)
+	data.Format = response["format"].(string)
 
-	results := []*Result{}
+	cmd.SetRESP3Data(&data)
+	cmd.SetTotalResults(response["total_results"].(int64))
+
+	results := []*SearchResult{}
 	for _, r := range response["results"].([]interface{}) {
 		rawResult := r.(map[interface{}]interface{})
-		var current *Result
+		var current *SearchResult
 
 		if cmd.options.NoContent {
-			current = &Result{}
+			current = &SearchResult{}
 		} else {
 			var err error
 			if current, err = parser(3, rawResult["extra_attributes"]); err != nil {
-				return nil, err
+				return err
 			}
 		}
 		current.Key = rawResult["id"].(string)
@@ -151,25 +204,26 @@ func (cmd *QueryCmd) postprocessRESP3Response(baseResponse interface{}, parser f
 		results = append(results, current)
 	}
 
-	output.SetResults(results)
-	return &output, nil
+	cmd.SetVal(results)
+	return nil
 }
 
-func (cmd *QueryCmd) postprocessRESP2Response(baseResponse interface{}, parser func(int, interface{}) (*Result, error)) (*QueryResults, error) {
+func (cmd *QueryCmd) postprocessRESP2Response(baseResponse interface{}, parser func(int, interface{}) (*SearchResult, error)) error {
 
 	if _, ok := baseResponse.([]interface{}); !ok {
-		return nil, fmt.Errorf("redis: FT.SEARCH response is not a slice")
+		return fmt.Errorf("redis: FT.SEARCH response is not a slice")
 	}
 
-	output := QueryResults{Format: "STRING"}
-	results := []*Result{}
+	data := RESPData{Format: "STRING"}
+	cmd.SetRESP3Data(&data)
+	results := []*SearchResult{}
 
 	response := baseResponse.([]interface{})
-	output.TotalResults = response[0].(int64)
+	cmd.SetTotalResults(response[0].(int64))
 
 	for i := 1; i < len(response); i += cmd.options.resultSize() {
 
-		var current *Result
+		var current *SearchResult
 		var score float64 = 0
 		var explanation []interface{}
 		j := 0
@@ -184,19 +238,20 @@ func (cmd *QueryCmd) postprocessRESP2Response(baseResponse interface{}, parser f
 				explanation = scoreData[1].([]interface{})
 			} else {
 				score, _ = internal.Float64(response[i+j])
+				explanation = nil
 			}
 			j++
 		}
 
 		if cmd.options.NoContent {
-			current = &Result{}
+			current = &SearchResult{}
 		} else {
 			if vals, ok := response[i+j].([]interface{}); !ok {
-				return nil, fmt.Errorf("redis: response content cannot be parsed")
+				return fmt.Errorf("redis: response content cannot be parsed")
 			} else {
 				var err error
 				if current, err = parser(2, vals); err != nil {
-					return nil, err
+					return err
 				}
 			}
 		}
@@ -204,15 +259,14 @@ func (cmd *QueryCmd) postprocessRESP2Response(baseResponse interface{}, parser f
 		current.Key = key
 		current.Explanation = explanation
 		current.Score = score
-		current.respVersion = 2
 
 		results = append(results, current)
 		j++
 
 	}
 
-	output.SetResults(results)
-	return &output, nil
+	cmd.SetVal(results)
+	return nil
 }
 
 /*******************************************************************************

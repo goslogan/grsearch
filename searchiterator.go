@@ -85,10 +85,10 @@ func (it *SearchIterator) Next(ctx context.Context) bool {
 }
 
 // Val returns the key/field at the current cursor position.
-func (it *SearchIterator) Val() *Result {
-	var v *Result
+func (it *SearchIterator) Val() *SearchResult {
+	var v *SearchResult
 	if it.cmd.Err() == nil && it.pos > 0 && it.pos <= it.options.Limit.Num {
-		v = it.cmd.Val().Results[it.pos-1]
+		v = it.cmd.Val()[it.pos-1]
 	}
 	return v
 }
