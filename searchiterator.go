@@ -70,7 +70,12 @@ func (it *SearchIterator) Next(ctx context.Context) bool {
 			it.options.Limit.Offset += it.options.Limit.Num
 		}
 
-		it.cmd = it.process.FTSearch(ctx, it.index, it.query, it.options)
+		if it.cmd.onHash {
+			it.cmd = it.process.FTSearchHash(ctx, it.index, it.query, it.options)
+		} else {
+			it.cmd = it.process.FTSearchJSON(ctx, it.index, it.query, it.options)
+		}
+
 		if it.Err() != nil {
 			return false
 		}
@@ -80,8 +85,8 @@ func (it *SearchIterator) Next(ctx context.Context) bool {
 }
 
 // Val returns the key/field at the current cursor position.
-func (it *SearchIterator) Val() *QueryResult {
-	var v *QueryResult
+func (it *SearchIterator) Val() *Result {
+	var v *Result
 	if it.cmd.Err() == nil && it.pos > 0 && it.pos <= it.options.Limit.Num {
 		v = it.cmd.Val().Results[it.pos-1]
 	}

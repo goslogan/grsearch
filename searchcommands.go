@@ -36,14 +36,14 @@ func (c cmdable) FTAggregate(ctx context.Context, index, query string, options *
 }
 
 // FTSearch queries an index (on hashes)
-func (c cmdable) FTSearch(ctx context.Context, index string, query string, qryOptions *QueryOptions) *QueryCmd {
+func (c cmdable) FTSearchHash(ctx context.Context, index string, query string, qryOptions *QueryOptions) *QueryCmd {
 	args := []interface{}{"FT.SEARCH", index, query}
 	if qryOptions == nil {
 		qryOptions = NewQueryOptions()
 	}
 	args = append(args, qryOptions.serialize()...)
 
-	cmd := NewQueryCmd(ctx, c, args...)
+	cmd := NewQueryCmd(ctx, c, true, args...)
 	cmd.options = qryOptions
 
 	_ = c(ctx, cmd)
@@ -59,7 +59,7 @@ func (c cmdable) FTSearchJSON(ctx context.Context, index string, query string, q
 	qryOptions.json = true
 	args = append(args, qryOptions.serialize()...)
 
-	cmd := NewQueryCmd(ctx, c, args...)
+	cmd := NewQueryCmd(ctx, c, false, args...)
 	cmd.options = qryOptions
 
 	_ = c(ctx, cmd)

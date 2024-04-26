@@ -17,18 +17,18 @@ var _ = Describe("Aliases", func() {
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		cmd = client.FTAliasDel(ctx, "aliasdel")
 		Expect(cmd.Err()).NotTo(HaveOccurred())
-		Expect(client.FTSearch(ctx, "aliasdel", "@command:set", grsearch.NewQueryOptions()).Err()).To(HaveOccurred())
+		Expect(client.FTSearchHash(ctx, "aliasdel", "@command:set", grsearch.NewQueryOptions()).Err()).To(HaveOccurred())
 	})
 
 	It("can move an alias to a different index", func() {
 		cmd := client.FTAliasAdd(ctx, "docalias", "hcustomers")
 		Expect(cmd.Err()).NotTo((HaveOccurred()))
-		search := client.FTSearch(ctx, "docalias", "@command:SET", grsearch.NewQueryOptions())
+		search := client.FTSearchHash(ctx, "docalias", "@command:SET", grsearch.NewQueryOptions())
 		Expect(search.Err()).NotTo(HaveOccurred())
 		Expect(search.Len()).To(BeZero())
 		cmd = client.FTAliasUpdate(ctx, "docalias", "hdocs")
 		Expect(cmd.Err()).NotTo((HaveOccurred()))
-		search = client.FTSearch(ctx, "docalias", "@command:SET", grsearch.NewQueryOptions())
+		search = client.FTSearchHash(ctx, "docalias", "@command:SET", grsearch.NewQueryOptions())
 		Expect(search.Err()).NotTo(HaveOccurred())
 		Expect(search.Len()).ToNot(BeZero())
 
@@ -37,9 +37,9 @@ var _ = Describe("Aliases", func() {
 	It("can find the same result via the original index and the alias", func() {
 		cmd := client.FTAliasAdd(ctx, "alias2", "hdocs")
 		Expect(cmd.Err()).NotTo(HaveOccurred())
-		searchAlias := client.FTSearch(ctx, "alias2", "@command:set", grsearch.NewQueryOptions())
+		searchAlias := client.FTSearchHash(ctx, "alias2", "@command:set", grsearch.NewQueryOptions())
 		Expect(searchAlias.Err()).NotTo(HaveOccurred())
-		searchIndex := client.FTSearch(ctx, "hdocs", "@command:set", grsearch.NewQueryOptions())
+		searchIndex := client.FTSearchHash(ctx, "hdocs", "@command:set", grsearch.NewQueryOptions())
 		Expect(searchIndex.Err()).NotTo(HaveOccurred())
 		Expect(searchAlias.Val()).To(BeEquivalentTo(searchIndex.Val()))
 

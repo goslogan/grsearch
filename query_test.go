@@ -12,52 +12,51 @@ import (
 var _ = Describe("Query basics", Label("hash", "query", "ft.search"), func() {
 
 	It("doesn't raise an error on a valid query", func() {
-		cmd := client.FTSearch(ctx, "hcustomers", `@email:ejowers0\@unblog\.fr`, nil)
+		cmd := client.FTSearchHash(ctx, "hcustomers", `@email:ejowers0\@unblog\.fr`, nil)
 		Expect(cmd.Err()).To(Not(HaveOccurred()))
 	})
 	It("can generate a valid query", Label("valid"), func() {
-		Expect(client.FTSearch(ctx, "hcustomers", `@email:ejowers0\@unblog\.fr`, nil).
+		Expect(client.FTSearchHash(ctx, "hcustomers", `@email:ejowers0\@unblog\.fr`, nil).
 			String()).To(ContainSubstring(`FT.SEARCH hcustomers @email:ejowers0\@unblog\.fr`))
 	})
 
 	It("can search for a specific result by attribute", func() {
-		cmd := client.FTSearch(ctx, "hcustomers", `@email:ejowers0\@unblog\.fr`, nil)
+		cmd := client.FTSearchHash(ctx, "hcustomers", `@email:ejowers0\@unblog\.fr`, nil)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 	})
 
 	It("can return a single result", Label("single"), func() {
-		cmd := client.FTSearch(ctx, "hcustomers", `@email:ejowers0\@unblog\.fr`, nil)
+		cmd := client.FTSearchHash(ctx, "hcustomers", `@email:ejowers0\@unblog\.fr`, nil)
 		Expect(cmd.Val().TotalResults).To(Equal(int64(1)))
 	})
 
 	It("can return a map result", Label("map"), func() {
-		results := &grsearch.QueryResult{
+		results := &grsearch.Result{
 			Key:         "haccount:1121175",
 			Score:       0,
 			Explanation: nil,
-			Values: &grsearch.HashQueryValue{
-				Value: map[string]string{
-					"account_owner": "lara.croft",
-					"balance":       "927.00",
-					"customer":      "Kandace Korneichuk",
-					"email":         `kkorneichukc\@cpanel\.net`,
-					"ip":            `148\.140\.255\.235`,
-					"account_id":    "1121175",
-				}}}
-		cmd := client.FTSearch(ctx, "hcustomers", `@id:{1121175}`, nil)
+			Values: map[string]string{
+				"account_owner": "lara.croft",
+				"balance":       "927.00",
+				"customer":      "Kandace Korneichuk",
+				"email":         `kkorneichukc\@cpanel\.net`,
+				"ip":            `148\.140\.255\.235`,
+				"account_id":    "1121175",
+			}}
+		cmd := client.FTSearchHash(ctx, "hcustomers", `@id:{1121175}`, nil)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		Expect(cmd.Val().TotalResults).To(Equal(int64(1)))
 		Expect(cmd.Val().Results[0]).To(Equal(results))
 	})
 
 	It("will fail quietly with no search defined", func() {
-		cmd := client.FTSearch(ctx, "hcustomers", "", nil)
+		cmd := client.FTSearchHash(ctx, "hcustomers", "", nil)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		Expect(cmd.Len()).To(Equal(int64(0)))
 	})
 
 	It("can return all the results for a given tag", func() {
-		cmd := client.FTSearch(ctx, "hcustomers", `@owner:{lara\.croft}`, nil)
+		cmd := client.FTSearchHash(ctx, "hcustomers", `@owner:{lara\.croft}`, nil)
 		Expect(cmd.Val().TotalResults).To(Equal(int64(10)))
 	})
 
@@ -68,11 +67,11 @@ var _ = Describe("Query options", Label("hash", "query", "ft.search"), func() {
 	It("will return empty results - NOCONTENT", func() {
 		opts := grsearch.NewQueryOptions()
 		opts.NoContent = true
-		cmd := client.FTSearch(ctx, "hcustomers", `@id:{1121175}`, opts)
+		cmd := client.FTSearchHash(ctx, "hcustomers", `@id:{1121175}`, opts)
 		Expect(cmd.Val().Key("haccount:1121175")).NotTo(BeNil())
-		Expect(cmd.Val().Key("haccount:1121175")).To(BeAssignableToTypeOf(&grsearch.QueryResult{}))
+		Expect(cmd.Val().Key("haccount:1121175")).To(BeAssignableToTypeOf(&grsearch.Result{}))
 		Expect(cmd.Val().Key("haccount:1121175")).To(Equal(
-			&grsearch.QueryResult{
+			&grsearch.Result{
 				Key:         "haccount:1121175",
 				Score:       0,
 				Explanation: nil,
@@ -83,7 +82,7 @@ var _ = Describe("Query options", Label("hash", "query", "ft.search"), func() {
 	It("will return scores - WITHSCORES", Label("withscores"), func() {
 		opts := grsearch.NewQueryOptions()
 		opts.WithScores = true
-		cmd := client.FTSearch(ctx, "hcustomers", `@id:{1121175}`, opts)
+		cmd := client.FTSearchHash(ctx, "hcustomers", `@id:{1121175}`, opts)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		Expect(cmd.Val()).To(BeAssignableToTypeOf(grsearch.QueryResults{}))
 		Expect(cmd.Val().Key("haccount:1121175").Score).Should(BeNumerically(">=", 1))
@@ -99,7 +98,7 @@ var _ = Describe("Query options", Label("hash", "query", "ft.search"), func() {
 				Max:       grsearch.FilterValue(math.Inf(1), false),
 			},
 		}
-		cmd := client.FTSearch(ctx, "hcustomers", `@owner:{lara\.croft}`, opts)
+		cmd := client.FTSearchHash(ctx, "hcustomers", `@owner:{lara\.croft}`, opts)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		Expect(cmd.Val().TotalResults).To(Equal(int64(2)))
 	})
@@ -108,7 +107,7 @@ var _ = Describe("Query options", Label("hash", "query", "ft.search"), func() {
 		opts := grsearch.NewQueryOptions()
 		opts.WithScores = true
 		opts.ExplainScore = true
-		cmd := client.FTSearch(ctx, "hcustomers", `@owner:{lara\.croft}`, opts)
+		cmd := client.FTSearchHash(ctx, "hcustomers", `@owner:{lara\.croft}`, opts)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		Expect(cmd.Val().TotalResults).NotTo(BeZero())
 		Expect(cmd.Val().Key("haccount:806396").Explanation).NotTo(BeNil())
@@ -119,7 +118,7 @@ var _ = Describe("Query options", Label("hash", "query", "ft.search"), func() {
 		opts := grsearch.NewQueryOptions()
 		opts.NoContent = true
 		opts.SortBy = "customer"
-		cmd := client.FTSearch(ctx, "hcustomers", `@owner:{lara\.croft}`, opts)
+		cmd := client.FTSearchHash(ctx, "hcustomers", `@owner:{lara\.croft}`, opts)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		for _, k := range cmd.Val().Results {
 			results = append(results, k.Key)
@@ -134,7 +133,7 @@ var _ = Describe("Query options", Label("hash", "query", "ft.search"), func() {
 		opts.NoContent = true
 		opts.Limit = &grsearch.Limit{Num: 3, Offset: 0}
 		opts.SortBy = "customer"
-		cmd := client.FTSearch(ctx, "hcustomers", `@owner:{lara\.croft}`, opts)
+		cmd := client.FTSearchHash(ctx, "hcustomers", `@owner:{lara\.croft}`, opts)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		Expect(cmd.Val().Results).To(HaveLen(3))
 		for _, k := range cmd.Val().Results {
@@ -150,7 +149,7 @@ var _ = Describe("Query options", Label("hash", "query", "ft.search"), func() {
 		opts.NoContent = true
 		opts.Limit = &grsearch.Limit{Num: 3, Offset: 3}
 		opts.SortBy = "customer"
-		cmd := client.FTSearch(ctx, "hcustomers", `@owner:{lara\.croft}`, opts)
+		cmd := client.FTSearchHash(ctx, "hcustomers", `@owner:{lara\.croft}`, opts)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		Expect(cmd.Val().TotalResults).To(Equal(int64(10)))
 		Expect(cmd.Val().Results).To(HaveLen(3))
@@ -161,19 +160,18 @@ var _ = Describe("Query options", Label("hash", "query", "ft.search"), func() {
 	})
 
 	It("can handle the RETURN subcommand", func() {
-		result := grsearch.QueryResult{
+		result := grsearch.Result{
 			Key:         "haccount:536299",
 			Score:       0,
 			Explanation: nil,
-			Values: &grsearch.HashQueryValue{
-				Value: map[string]string{"owner": "ellen.ripley", "balance": "113"},
-			}}
+			Values:      map[string]string{"owner": "ellen.ripley", "balance": "113"},
+		}
 		opts := grsearch.NewQueryOptions()
 		opts.Return = append(opts.Return, grsearch.QueryReturn{
 			Name: "owner",
 		})
 		opts.Return = append(opts.Return, grsearch.QueryReturn{Name: "balance"})
-		cmd := client.FTSearch(ctx, "hcustomers", `@owner:{ellen\.ripley}`, opts)
+		cmd := client.FTSearchHash(ctx, "hcustomers", `@owner:{ellen\.ripley}`, opts)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		Expect(cmd.Len()).To(Equal(int64(1)))
 		Expect(cmd.Val().TotalResults).To(Equal(int64(1)))
@@ -185,11 +183,11 @@ var _ = Describe("Query options", Label("hash", "query", "ft.search"), func() {
 var _ = Describe("JSON query basics", Label("json", "query", "ft.search"), func() {
 
 	It("doesn't raise an error on a valid query", func() {
-		Expect(client.FTSearch(ctx, "jcustomers", `@email:ejowers0\@unblog\.fr`, nil).
+		Expect(client.FTSearchHash(ctx, "jcustomers", `@email:ejowers0\@unblog\.fr`, nil).
 			Err()).To(Not(HaveOccurred()))
 	})
 	It("can generate a valid query", Label("valid"), func() {
-		Expect(client.FTSearch(ctx, "jcustomers", `@email:ejowers0\@unblog\.fr`, nil).
+		Expect(client.FTSearchHash(ctx, "jcustomers", `@email:ejowers0\@unblog\.fr`, nil).
 			String()).To(ContainSubstring(`FT.SEARCH jcustomers @email:ejowers0\@unblog\.fr`))
 	})
 
@@ -202,7 +200,6 @@ var _ = Describe("JSON searches", Label("json", "query", "ft.search"), func() {
 		cmd := client.FTSearchJSON(ctx, "jcustomers", `@id:{1121175}`, opts)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		Expect(cmd.Val().Key("jaccount:1121175")).NotTo(BeNil())
-		Expect(cmd.Val().Key("jaccount:1121175").Values).To(BeAssignableToTypeOf(&grsearch.JSONQueryValue{}))
 	})
 
 	It("can return multiple search results", Label("multiple"), func() {
@@ -211,10 +208,8 @@ var _ = Describe("JSON searches", Label("json", "query", "ft.search"), func() {
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		Expect(cmd.Val().Key("jcomplex1")).NotTo(BeNil())
 		Expect(cmd.Val().Key("jcomplex2")).NotTo(BeNil())
-		Expect(cmd.Val().Key("jcomplex2").Values.(*grsearch.JSONQueryValue).Value).To(Equal(
-			map[string]string{"$": `{"data":1,"test":{"data":1}}`}))
-		Expect(cmd.Val().Key("jcomplex1").Values.(*grsearch.JSONQueryValue).Value).To(Equal(
-			map[string]string{"$": `{"data":1,"test1":{"data":2},"test2":{"data":1}}`}))
+		Expect(cmd.Val().Key("jcomplex2").Values["$"]).To(Equal(`{"data":1,"test":{"data":1}}`))
+		Expect(cmd.Val().Key("jcomplex1").Values["$"]).To(Equal(`{"data":1,"test1":{"data":2},"test2":{"data":1}}`))
 	})
 
 	It("can handle multiple search results with DIALECT 3", func() {
@@ -225,10 +220,8 @@ var _ = Describe("JSON searches", Label("json", "query", "ft.search"), func() {
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		Expect(cmd.Val().Key("jcomplex1")).NotTo(BeNil())
 		Expect(cmd.Val().Key("jcomplex2")).NotTo(BeNil())
-		Expect(cmd.Val().Key("jcomplex2").Values.(*grsearch.JSONQueryValue).Value).To(Equal(map[string]string{
-			"$": `[{"data":1,"test":{"data":1}}]`}))
-		Expect(cmd.Val().Key("jcomplex1").Values.(*grsearch.JSONQueryValue).Value).To(Equal(map[string]string{
-			"$": `[{"data":1,"test1":{"data":2},"test2":{"data":1}}]`}))
+		Expect(cmd.Val().Key("jcomplex2").Values["$"]).To(Equal(`[{"data":1,"test":{"data":1}}]`))
+		Expect(cmd.Val().Key("jcomplex1").Values["$"]).To(Equal(`[{"data":1,"test1":{"data":2},"test2":{"data":1}}]`))
 	})
 
 	It("can return values when we use RETURN", func() {
@@ -242,8 +235,8 @@ var _ = Describe("JSON searches", Label("json", "query", "ft.search"), func() {
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		Expect(cmd.Val().Key("jcomplex1")).NotTo(BeNil())
 		Expect(cmd.Val().Key("jcomplex2")).NotTo(BeNil())
-		Expect(cmd.Val().Key("jcomplex2").Values.(*grsearch.JSONQueryValue).Value).To(Equal(map[string]string{"answer": "1"}))
-		Expect(cmd.Val().Key("jcomplex1").Values.(*grsearch.JSONQueryValue).Value).To(Equal(map[string]string{"answer": "1"}))
+		Expect(cmd.Val().Key("jcomplex2").Values["answer"]).To(Equal("1"))
+		Expect(cmd.Val().Key("jcomplex1").Values["answer"]).To(Equal("1"))
 	})
 
 	It("can return values when we use RETURN and DIALECT v3", func() {
@@ -258,29 +251,8 @@ var _ = Describe("JSON searches", Label("json", "query", "ft.search"), func() {
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		Expect(cmd.Val().Key("jcomplex1")).NotTo(BeNil())
 		Expect(cmd.Val().Key("jcomplex2")).NotTo(BeNil())
-		Expect(cmd.Val().Key("jcomplex1").Values.(*grsearch.JSONQueryValue).Value).To(Equal(map[string]string{"answer": `[1,2,1]`}))
-		Expect(cmd.Val().Key("jcomplex2").Values.(*grsearch.JSONQueryValue).Value).To(Equal(map[string]string{"answer": `[1,1]`}))
-	})
-
-	It("can scan a result", func() {
-
-		type Customer struct {
-			Customer     string  `json:"customer"`
-			Email        string  `json:"email"`
-			IP           string  `json:"ip"`
-			AccountId    string  `json:"account_id"`
-			AccountOwner string  `json:"account_owner"`
-			Balance      float64 `json:"balance"`
-		}
-
-		var customer = Customer{}
-
-		cmd := client.FTSearchJSON(ctx, "jcustomers", `@owner:{ellen\.ripley}`, grsearch.NewQueryOptions())
-		Expect(cmd.Err()).NotTo(HaveOccurred())
-		Expect(cmd.Val().Key("jaccount:536299")).NotTo(BeNil())
-		Expect(cmd.Val().Key("jaccount:536299").Values.(*grsearch.JSONQueryValue).Scan("$", &customer)).NotTo(HaveOccurred())
-		Expect(customer.Customer).To(Equal("Davon Audley"))
-		Expect(customer.Email).To(Equal(`daudley3\@alexa\.com`))
+		Expect(cmd.Val().Key("jcomplex1").Values["answer"]).To(Equal(`[1,2,1]`))
+		Expect(cmd.Val().Key("jcomplex2").Values["answer"]).To(Equal(`[1,1]`))
 	})
 
 	It("can return all the keys from a query result", func() {
