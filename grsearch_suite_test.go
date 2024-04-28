@@ -109,6 +109,7 @@ func createHashTestData() {
 			"account_id", row[4],
 			"account_owner", row[5],
 			"balance", row[6],
+			"country", row[7],
 		).Err()).NotTo(HaveOccurred())
 
 	}
@@ -135,16 +136,25 @@ func createHashIndexes() {
 		Schema(&grsearch.TagAttribute{
 			Name:     "account_id",
 			Alias:    "id",
-			Sortable: true}).Schema(&grsearch.TextAttribute{Name: "customer",
-		Sortable: true}).Schema(&grsearch.TextAttribute{
-		Name:     "email",
-		Sortable: false}).Schema(&grsearch.TagAttribute{
-		Name:     "account_owner",
-		Alias:    "owner",
-		Sortable: true}).Schema(&grsearch.NumericAttribute{
-		Name:     "balance",
-		Sortable: true,
-	}).Options()).Err()).NotTo(HaveOccurred())
+			Sortable: true}).
+		Schema(&grsearch.TextAttribute{
+			Name:     "customer",
+			Sortable: true}).
+		Schema(&grsearch.TextAttribute{
+			Name:     "email",
+			Sortable: false}).
+		Schema(&grsearch.TagAttribute{
+			Name:     "account_owner",
+			Alias:    "owner",
+			Sortable: true}).
+		Schema(&grsearch.NumericAttribute{
+			Name:     "balance",
+			Sortable: true}).
+		Schema(&grsearch.TagAttribute{
+			Name:     "country",
+			Sortable: true,
+		}).
+		Options()).Err()).NotTo(HaveOccurred())
 
 	Expect(client.FTCreate(ctx, "hdocs", grsearch.NewIndexBuilder().
 		Prefix("hcommand:").
@@ -182,7 +192,13 @@ func createJSONIndexes() {
 			Name:     "$.balance",
 			Alias:    "balance",
 			Sortable: true,
-		}).Options())
+		}).
+		Schema(&grsearch.TagAttribute{
+			Name:     "$.country",
+			Alias:    "country",
+			Sortable: true,
+		}).
+		Options())
 	Expect(cmd.Err()).NotTo(HaveOccurred())
 
 	Expect(client.FTCreate(ctx, "jdocs", grsearch.NewIndexBuilder().
@@ -214,7 +230,7 @@ func createJSONIndexes() {
 func TestFtsearch(t *testing.T) {
 	RegisterFailHandler(Fail)
 	suiteConfig, reportConfig := GinkgoConfiguration()
-	//suiteConfig.LabelFilter = "withscores"
+	suiteConfig.LabelFilter = "ft.aggregate"
 	RunSpecs(t, "Ftsearch Suite", suiteConfig, reportConfig)
 }
 

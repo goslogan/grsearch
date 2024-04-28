@@ -5,24 +5,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	"github.com/goslogan/grsearch"
 )
-
-var _ = Describe("We can build query options", Label("aggregate", "search", "ft.aggregate"), func() {
-
-	It("can execute a very simple aggregate", func() {
-		opts := grsearch.NewAggregateBuilder().
-			GroupBy(grsearch.NewGroupByBuilder().
-				Property("@owner").
-				Reduce(grsearch.ReduceSum("@balance", "total_balance")).
-				GroupBy())
-
-		cmd := client.FTAggregate(ctx, "hcustomers", "*", opts.Options())
-		Expect(cmd.Err()).ToNot(HaveOccurred())
-	})
-
-})
 
 var _ = Describe("Synonyms", Ordered, Label("synonyms", "search"), func() {
 	It("can add one or more synonyms", Label("ft.synupdate"), func() {

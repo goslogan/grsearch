@@ -20,7 +20,10 @@ var _ = Describe("Iterator", Label("search", "hash", "ft.search", "iterator"), f
 	})
 
 	It("can iterate over a search returning fewer than the limit results", func() {
-		cmd := client.FTSearchHash(ctx, "hdocs", "GET", grsearch.NewQueryBuilder().SortBy("command").Verbatim().Options())
+		options := grsearch.NewQueryOptions()
+		options.SortBy = "command"
+		options.Verbatim = true
+		cmd := client.FTSearchHash(ctx, "hdocs", "GET", options)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		iterator := cmd.Iterator(ctx)
 		Expect(iterator.Err()).NotTo(HaveOccurred())
@@ -31,7 +34,6 @@ var _ = Describe("Iterator", Label("search", "hash", "ft.search", "iterator"), f
 		Expect(iterator.Next(ctx)).To(BeTrue())
 		Expect(iterator.Val().Key).To(Equal("hcommand:SLOWLOG_GET"))
 		Expect(iterator.Next(ctx)).To(BeFalse())
-
 	})
 
 	It("can iterate over a search return in multiple calls", func() {

@@ -2,6 +2,7 @@ package grsearch
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/goslogan/grsearch/internal"
@@ -60,15 +61,6 @@ type AggregateSortKey struct {
 
 type AggregateStep interface {
 	serializeStep() []interface{}
-}
-
-type AggregateResults struct {
-	TotalResults int64
-	Results      []map[string]interface{}
-	Errors       []interface{}
-	Warnings     []interface{}
-	Format       string
-	Attributes   []interface{}
 }
 
 // LoadAll can be used to indicate FT.AGGREGATE idx LOAD *
@@ -134,10 +126,11 @@ func (a *AggregateOptions) serializeLoad() []interface{} {
 	if len(a.Load) == 1 && a.Load[0].Name == "*" {
 		return []interface{}{"load", "*"}
 	}
-	loads := []interface{}{"load", len(a.Load)}
+	loads := []interface{}{"load", 0}
 	for _, l := range a.Load {
-		loads = append(loads, l.serialize())
+		loads = append(loads, l.serialize()...)
 	}
+	loads[1] = len(loads) - 2
 	return loads
 }
 
@@ -160,22 +153,26 @@ func (l AggregateLoad) serialize() []interface{} {
 
 func (s AggregateSort) serializeStep() []interface{} {
 
-	nArgs := len(s.Keys)
-
-	if nArgs == 0 {
-		return []interface{}{}
-	}
-
-	if nArgs > 0 && s.Max != 0 {
-		nArgs += 2
-	}
-	keys := []interface{}{nArgs}
+	keys := []interface{}{"SORTBY", 0}
 	for _, k := range s.Keys {
-		keys = append(keys, k.Name, k.Order)
+		namePrefix := ""
+		if !strings.HasPrefix(k.Name, "@") {
+			namePrefix = "@"
+		}
+		if k.Order == "" {
+			keys = append(keys, namePrefix+k.Name, "ASC")
+		} else {
+			keys = append(keys, namePrefix+k.Name, k.Order)
+		}
+
 	}
-	if nArgs != 0 {
-		keys = append(keys, "max", s.Max)
+
+	keys[1] = len(keys) - 2
+
+	if len(keys) != 0 && s.Max != 0 {
+		keys = append(keys, "MAX", s.Max)
 	}
+
 	return keys
 }
 
@@ -215,3 +212,5 @@ func (g *AggregateGroupBy) serializeStep() []interface{} {
 	}
 	return args
 }
+
+// Agre

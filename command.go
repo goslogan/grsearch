@@ -495,7 +495,9 @@ func (cmd *IntSlicePointerCmd) Result() ([]*int64, error) {
 
 type AggregateCmd struct {
 	redis.Cmd
-	val AggregateResults
+	respData     *RESPData
+	val          []map[string]interface{}
+	totalResults int64
 }
 
 func NewAggregateCmd(ctx context.Context, args ...interface{}) *AggregateCmd {
@@ -510,54 +512,75 @@ func (cmd *AggregateCmd) postProcess() error {
 		return cmd.Err()
 	}
 
+	respData := &RESPData{}
 	rawResults := cmd.Cmd.Val()
-	results := AggregateResults{Results: make([]map[string]interface{}, 0)}
+	results := make([]map[string]interface{}, 0)
 
 	// RESP2 v RESP3
 	switch r := rawResults.(type) {
 	case []interface{}:
-		results.TotalResults = int64(len(r))
-		results.Format = "STRING"
-		for _, data := range r {
+		cmd.SetTotalResults(int64(len(r) - 1))
+		respData.Format = "STRING"
+		for n := 1; n < len(r); n++ {
 			result := map[string]interface{}{}
-			for k, v := range internal.ToMap(data) {
+			for k, v := range internal.ToMap(r[n]) {
 				result[k.(string)] = v
 			}
-			results.Results = append(results.Results, result)
+			results = append(results, result)
 		}
 	case map[interface{}]interface{}:
-		results.TotalResults, _ = internal.Int64(r["total_results"])
-		results.Format = r["format"].(string)
+		n, _ := internal.Int64(r["total_results"])
+		cmd.SetTotalResults(n)
+
+		respData.Format = r["format"].(string)
 		if w, ok := r["error"]; ok {
-			results.Warnings = w.([]interface{})
+			respData.Warnings = w.([]interface{})
 		}
-		results.Warnings = r["warning"].([]interface{})
 		if e, ok := r["error"]; ok {
-			results.Errors = e.([]interface{})
+			respData.Warnings = r["warning"].([]interface{})
+			respData.Errors = e.([]interface{})
 		}
 		for _, data := range r["results"].([]interface{}) {
 			result := map[string]interface{}{}
 			for k, v := range data.(map[interface{}]interface{}) {
 				result[k.(string)] = v
 			}
-			results.Results = append(results.Results, result)
+			results = append(results, result)
 		}
 	}
-
+	cmd.SetRESP3Data(respData)
 	cmd.SetVal(results)
 	return nil
 }
 
-func (cmd *AggregateCmd) SetVal(val AggregateResults) {
+func (cmd *AggregateCmd) SetVal(val []map[string]interface{}) {
 	cmd.val = val
 }
 
-func (cmd *AggregateCmd) Val() AggregateResults {
+func (cmd *AggregateCmd) Val() []map[string]interface{} {
 	return cmd.val
 }
 
-func (cmd *AggregateCmd) Result() (AggregateResults, error) {
+func (cmd *AggregateCmd) Result() ([]map[string]interface{}, error) {
 	return cmd.Val(), cmd.Err()
+}
+
+func (cmd *AggregateCmd) SetTotalResults(n int64) {
+	cmd.totalResults = n
+}
+
+func (cmd *AggregateCmd) TotalResults() int64 {
+	return cmd.totalResults
+}
+
+// RESPData returns the additional data returned with a RESP3 response if set.
+func (cmd *AggregateCmd) RESP3Data() *RESPData {
+	return cmd.respData
+}
+
+// SetRESPData stores the additional data returned with a RESP3 response if set.
+func (cmd *AggregateCmd) SetRESP3Data(data *RESPData) {
+	cmd.respData = data
 }
 
 type ExtCmder interface {
