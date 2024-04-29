@@ -529,8 +529,7 @@ func (cmd *AggregateCmd) postProcess() error {
 			results = append(results, result)
 		}
 	case map[interface{}]interface{}:
-		n, _ := internal.Int64(r["total_results"])
-		cmd.SetTotalResults(n)
+		// ignore the total_results field - it's meaningless
 
 		respData.Format = r["format"].(string)
 		if w, ok := r["error"]; ok {
@@ -541,13 +540,16 @@ func (cmd *AggregateCmd) postProcess() error {
 			respData.Errors = e.([]interface{})
 		}
 		for _, data := range r["results"].([]interface{}) {
+			values := data.(map[interface{}]interface{})["extra_attributes"].(map[interface{}]interface{})
 			result := map[string]interface{}{}
-			for k, v := range data.(map[interface{}]interface{}) {
+			for k, v := range values {
 				result[k.(string)] = v
 			}
 			results = append(results, result)
 		}
 	}
+
+	cmd.SetTotalResults(int64(len(results)))
 	cmd.SetRESP3Data(respData)
 	cmd.SetVal(results)
 	return nil

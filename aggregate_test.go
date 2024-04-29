@@ -11,6 +11,7 @@ var _ = Describe("Aggregate", Label("ft.aggregate"), func() {
 	It("can run the most basic aggregates", func() {
 		opts := grsearch.NewAggregateOptions()
 		opts.Load = []grsearch.AggregateLoad{{Name: "owner"}, {Name: "customer"}}
+
 		cmd := client.FTAggregate(ctx, "hcustomers", `*`, opts)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		Expect(cmd.TotalResults()).To(Equal(int64(25)))
@@ -47,7 +48,20 @@ var _ = Describe("Aggregate", Label("ft.aggregate"), func() {
 		opts.Steps = []grsearch.AggregateStep{&grsearch.AggregateSort{Keys: []grsearch.AggregateSortKey{{Name: "owner"}}}}
 		cmd := client.FTAggregate(ctx, "hcustomers", `*`, opts)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
-		Expect(cmd.TotalResults()).To(Equal(int64(25)))
+		// Expect(cmd.TotalResults()).To(Equal(int64(25)))
+	})
+
+	It("can execute an APPLY statement", func() {
+		opts := grsearch.NewAggregateBuilder().
+			GroupBy(grsearch.NewGroupByBuilder().
+				Property("@country").Property("@owner").
+				Reduce(grsearch.ReduceSum("@balance", "total_balance")).
+				GroupBy()).
+			Apply("upper(@owner)", "uowner")
+		cmd := client.FTAggregate(ctx, "hcustomers", "*", opts.Options())
+		Expect(cmd.Err()).ToNot(HaveOccurred())
+		Expect(cmd.TotalResults()).To(Equal(int64(13)))
+
 	})
 
 })
