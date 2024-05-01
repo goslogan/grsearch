@@ -1,5 +1,0 @@
-{
-    "command": "{{index . 0}}",
-    "summary": "{{index . 1}}",
-    "groups": "{{index . 2}}"
-}

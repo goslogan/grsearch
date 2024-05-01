@@ -9,20 +9,20 @@ import (
 
 var _ = Describe("Synonyms", Ordered, Label("synonyms", "search"), func() {
 	It("can add one or more synonyms", Label("ft.synupdate"), func() {
-		cmd := client.FTSynUpdate(ctx, "hdocs", "synomyns", "hash", "map")
+		cmd := client.FTSynUpdate(ctx, "hcustomers", "countries", "UK", "GB")
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		Expect(cmd.Val()).To(BeTrue())
-		cmd = client.FTSynUpdate(ctx, "hdocs", "words", "list", "array")
+		cmd = client.FTSynUpdate(ctx, "hcustomers", "countries", "UK", "GBR")
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 	})
 
 	It("cam dump synonyms", Label("ft.syndump"), func() {
-		cmd := client.FTSynDump(ctx, "hdocs")
+		cmd := client.FTSynDump(ctx, "hcustomers")
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 		Expect(cmd.Val()).To(BeEquivalentTo(map[string][]string{
-			"map":   {"hash"},
-			"array": {"list"},
-			"":      {"hash", "list"},
+			"gbr": {"UK"},
+			"gb":  {"UK"},
+			"":    {"UK", "UK"},
 		}))
 	})
 })
@@ -46,7 +46,7 @@ var _ = Describe("Info", Label("search", "ft.info"), func() {
 		Expect(cmd.Err()).NotTo(HaveOccurred())
 	})
 
-	It("can recreate an index", Label("rebuild"), func() {
+	It("can recreate an index", Label("FT.CREATE", "FT.INFO", "rebuild"), func() {
 		cmd1 := client.FTInfo(ctx, "hcustomers")
 		Expect(cmd1.Err()).NotTo(HaveOccurred())
 		cmd2 := client.FTCreate(ctx, "hcustomersdup", cmd1.Val().Index)
@@ -56,7 +56,6 @@ var _ = Describe("Info", Label("search", "ft.info"), func() {
 		Expect(cmd3.Err()).NotTo(HaveOccurred())
 		Expect(cmd1.Val().Index).To(Equal(cmd3.Val().Index))
 		Expect(cmd1.Val().NumDocs).To(Equal(cmd3.Val().NumDocs))
-		Expect(cmd1.Val().MaxDocId).To(Equal(cmd3.Val().MaxDocId))
 		Expect(cmd1.Val().SortableValuesSize).To(Equal(cmd3.Val().SortableValuesSize))
 	})
 

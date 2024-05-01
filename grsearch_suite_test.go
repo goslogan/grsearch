@@ -26,12 +26,6 @@ var customerData string
 //go:embed testdata/customers_test.template
 var customerJSON string
 
-//go:embed testdata/commands_test.csv
-var commandData string
-
-//go:embed testdata/commands_test.template
-var commandJSON string
-
 var client *grsearch.Client
 var ctx = context.Background()
 
@@ -57,10 +51,17 @@ func createJSONTestData() {
 	t, err := template.New("customer").Parse(customerJSON)
 	Expect(err).NotTo((HaveOccurred()))
 
+	// skip the first one so we can have something that is found in one index and
+	// not the other
+	first := true
 	for {
 		row, err := csvReader.Read()
 		if err == io.EOF {
 			break
+		}
+		if first {
+			first = false
+			continue
 		}
 		row[2] = escapeForJSON(row[2])
 		row[3] = escapeForJSON(row[3])
@@ -70,21 +71,6 @@ func createJSONTestData() {
 		Expect(client.JSONSet(ctx, fmt.Sprintf("jaccount:%s", row[4]), "$", js.String()).Err()).NotTo(HaveOccurred())
 	}
 
-	csvData = strings.NewReader(commandData)
-	csvReader = csv.NewReader(csvData)
-	t, err = template.New("command").Parse(commandJSON)
-	Expect(err).NotTo((HaveOccurred()))
-
-	for {
-		row, err := csvReader.Read()
-		if err == io.EOF {
-			break
-		}
-		Expect(err).NotTo(HaveOccurred())
-		var js bytes.Buffer
-		Expect(t.ExecuteTemplate(&js, "command", row)).NotTo(HaveOccurred())
-		Expect(client.JSONSet(ctx, fmt.Sprintf("jcommand:%s", row[0]), "$", js.String()).Err()).NotTo(HaveOccurred())
-	}
 }
 
 // initialise the test data we use throughout
@@ -114,19 +100,6 @@ func createHashTestData() {
 
 	}
 
-	csvData = strings.NewReader(commandData)
-	csvReader = csv.NewReader(csvData)
-
-	for {
-		row, err := csvReader.Read()
-		if err == io.EOF {
-			break
-		}
-		Expect(client.HSet(ctx, fmt.Sprintf("hcommand:%s", strings.Replace(row[0], " ", "_", -1)),
-			"command", row[0],
-			"group", row[1],
-			"summary", row[2]).Err()).NotTo(HaveOccurred())
-	}
 }
 
 func createHashIndexes() {
@@ -155,15 +128,6 @@ func createHashIndexes() {
 			Sortable: true,
 		}).
 		Options()).Err()).NotTo(HaveOccurred())
-
-	Expect(client.FTCreate(ctx, "hdocs", grsearch.NewIndexBuilder().
-		Prefix("hcommand:").
-		Schema(&grsearch.TagAttribute{
-			Name:     "group",
-			Sortable: true}).Schema(&grsearch.TextAttribute{
-		Name:     "command",
-		Sortable: true}).Options()).Err()).NotTo(HaveOccurred())
-
 }
 
 func createJSONIndexes() {
@@ -201,14 +165,6 @@ func createJSONIndexes() {
 		Options())
 	Expect(cmd.Err()).NotTo(HaveOccurred())
 
-	Expect(client.FTCreate(ctx, "jdocs", grsearch.NewIndexBuilder().
-		Prefix("jcommand:").
-		Schema(&grsearch.TagAttribute{
-			Name:     "$.group",
-			Sortable: true}).Schema(&grsearch.TextAttribute{
-		Name:     "$.command",
-		Sortable: true}).Options()).Err()).NotTo(HaveOccurred())
-
 	// complex documents for testing JSON edge cases
 	doc1 := `{"data": 1, "test1": {"data": 2 }, "test2": {"data": 1}}`
 	doc2 := `{"data": 1, "test": {"data": 1 }}`
@@ -230,7 +186,7 @@ func createJSONIndexes() {
 func TestFtsearch(t *testing.T) {
 	RegisterFailHandler(Fail)
 	suiteConfig, reportConfig := GinkgoConfiguration()
-	suiteConfig.LabelFilter = "ft.aggregate"
+	//suiteConfig.LabelFilter = "json && FT.SEARCH && valid"
 	RunSpecs(t, "Ftsearch Suite", suiteConfig, reportConfig)
 }
 

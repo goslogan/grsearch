@@ -40,6 +40,7 @@ var _ = Describe("Query basics", Label("hash", "query", "ft.search"), func() {
 				"email":         `kkorneichukc\@cpanel\.net`,
 				"ip":            `148\.140\.255\.235`,
 				"account_id":    "1121175",
+				"country":       "USA",
 			}}
 		cmd := client.FTSearchHash(ctx, "hcustomers", `@id:{1121175}`, nil)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
@@ -188,13 +189,14 @@ var _ = Describe("JSON query basics", Label("json", "query", "ft.search"), func(
 
 })
 
-var _ = Describe("JSON searches", Label("json", "query", "ft.search"), func() {
+var _ = Describe("JSON searches", Label("json", "query", "FT.SEARCH"), func() {
 
-	It("will return valid results", func() {
+	It("will return valid results", Label("valid"), func() {
 		opts := grsearch.NewQueryOptions()
-		cmd := client.FTSearchJSON(ctx, "jcustomers", `@id:{1121175}`, opts)
+		cmd := client.FTSearchJSON(ctx, "jcustomers", `@id:{1443633}`, opts)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
-		Expect(cmd.Key("jaccount:1121175")).NotTo(BeNil())
+		Expect(cmd.TotalResults()).To(Equal(int64(1)))
+		Expect(cmd.Key("jaccount:1443633")).NotTo(BeNil())
 	})
 
 	It("can return multiple search results", Label("multiple"), func() {
