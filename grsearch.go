@@ -29,7 +29,7 @@ func NewClient(options *redis.Options) *Client {
 }
 
 // FromRedisClient builds a client from an existing redis client
-func FromRedisCLient(redisClient *redis.Client) *Client {
+func FromRedisClient(redisClient *redis.Client) *Client {
 	client := &Client{Client: *redisClient}
 	client.cmdable = client.Process
 	return client
