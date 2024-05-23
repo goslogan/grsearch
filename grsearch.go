@@ -28,6 +28,13 @@ func NewClient(options *redis.Options) *Client {
 	return client
 }
 
+// FromRedisClient builds a client from an existing redis client
+func FromRedisCLient(redisClient *redis.Client) *Client {
+	client := &Client{Client: *redisClient}
+	client.cmdable = client.Process
+	return client
+}
+
 func (c *Client) Process(ctx context.Context, cmd redis.Cmder) error {
 	err := c.Client.Process(ctx, cmd)
 	if c, ok := cmd.(ExtCmder); ok {
