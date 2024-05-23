@@ -45,10 +45,13 @@ var _ = Describe("Aggregate", Label("ft.aggregate"), func() {
 	It("can sort ", func() {
 		opts := grsearch.NewAggregateOptions()
 		opts.Load = []grsearch.AggregateLoad{{Name: "owner"}, {Name: "customer"}}
-		opts.Steps = []grsearch.AggregateStep{&grsearch.AggregateSort{Keys: []grsearch.AggregateSortKey{{Name: "owner"}}}}
+		opts.Steps = []grsearch.AggregateStep{
+			&grsearch.AggregateSort{Keys: []grsearch.AggregateSortKey{{Name: "owner"}}},
+			&grsearch.Limit{Offset: 0, Num: 100},
+		}
 		cmd := client.FTAggregate(ctx, "hcustomers", `*`, opts)
 		Expect(cmd.Err()).NotTo(HaveOccurred())
-		// Expect(cmd.TotalResults()).To(Equal(int64(25)))
+		Expect(cmd.TotalResults()).To(Equal(int64(25)))
 	})
 
 	It("can execute an APPLY statement", func() {
